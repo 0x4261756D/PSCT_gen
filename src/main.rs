@@ -31,6 +31,11 @@ const PERCENTAGE_ALLOW_ADDITIONAL_SYNCHRO_MAT: f32 = 0.3;
 const MAX_XYZ_MAT: u8 = 5;
 const PERCENTAGE_ALLOW_ADDITIONAL_XYZ_MAT: f32 = 0.3;
 const PERCENTAGE_ALLOW_ADDITIONAL_LINK_MAT: f32 = 0.3;
+const PERCENTAGE_MISS_TIMING: f32 = 0.1;
+const PERCENTAGE_SOFT_OPT: f32 = 0.4;
+const PERCENTAGE_FURTHER_ACTIVATION_CONDITION: f32 = 0.7;
+const PERCENTAGE_IS_QUICK: f32 = 0.2;
+const PERCENTAGE_HARD_OPT: f32 = 0.2;
 
 const SUMMONING_TYPES: [&str; 9] = ["Normal Summon", "Ritual Summon", "Set", "Special Summon", "Fusion Summon", "Xyz Summon", "Synchro Summon", "Pendulum Summon", "Link Summon"];
 const EXTRA_SUMMONING_TYPES: [&str; 4] = ["Fusion Summon", "Synchro Summon", "Xyz Summon", "Link Summon"];
@@ -433,9 +438,46 @@ impl Card<'_>
 	}
 
 
-	pub fn generate_activation_condition(text: &mut String)
+	pub fn generate_activation_condition(text: &mut String, card_type: &str) -> bool
 	{
-		todo!("text till here: {}", text);
+		let mut rng = rand::thread_rng();
+		let mut has_soft_opt = false;
+		if rng.gen::<f32>() < PERCENTAGE_SOFT_OPT
+		{
+			text.push_str("Once per turn");
+			has_soft_opt = true;
+		}
+		if !has_soft_opt || rng.gen::<f32>() < PERCENTAGE_FURTHER_ACTIVATION_CONDITION
+		{
+			if rng.gen::<f32>() < PERCENTAGE_MISS_TIMING
+			{
+				if has_soft_opt
+				{
+					text.push_str(", when");
+				}
+				else
+				{
+					text.push_str("When");
+				}
+			}
+			else
+			{
+				if has_soft_opt
+				{
+					text.push_str(", if");
+				}
+				else
+				{
+					text.push_str("If");
+				}
+			}
+			todo!("text so far: {}", text);
+		}
+		if !card_type.contains("Trap") && rng.gen::<f32>() < PERCENTAGE_IS_QUICK
+		{
+			text.push_str(" (Quick Effect)");
+		}
+		return has_soft_opt;
 	}
 
 	pub fn generate_cost(text: &mut String)
@@ -562,7 +604,7 @@ impl Card<'_>
 				}
 				3 =>
 				{
-					Self::generate_activation_condition(&mut self.text);
+					Self::generate_activation_condition(&mut self.text, self.card_type);
 					self.text.push_str(", you win the Duel");
 					// Match winner cards are useless so they are excluded.
 				}
@@ -603,9 +645,10 @@ impl Card<'_>
 			return;
 		}
 		println!("Generating normal effect");
+		let mut has_soft_opt = false;
 		if rng.gen::<f32>() < PERCENTAGE_GENERATE_ACTIVATION_CONDITION
 		{
-			Self::generate_activation_condition(&mut self.text);
+			has_soft_opt = Self::generate_activation_condition(&mut self.text, self.card_type);
 			self.text.push(':');
 		}
 		let mut is_targeting = false;
@@ -623,7 +666,13 @@ impl Card<'_>
 			self.text.push(';');
 		}
 		Self::generate_resolution(&mut self.text);
-		todo!("text till here: {}", self.text);
+		if !has_soft_opt && rng.gen::<f32>() < PERCENTAGE_HARD_OPT
+		{
+			self.text.push_str(". You can only activate this effect of ");
+			self.text.push_str(&self.name);
+			self.text.push_str(" once per turn");
+			// No twice/thrice here...
+		}
 		self.text.push('.');
 	}
 

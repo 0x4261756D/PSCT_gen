@@ -44,6 +44,11 @@ const PERCENTAGE_DAMAGE_TYPE_BATTLE_FURTHER: f32 = 0.3;
 const PERCENTAGE_DAMAGE_TYPE_BATTLE_OPPONENTS: f32 = 0.5;
 const PERCENTAGE_DAMAGE_TYPE_BATTLE_MONSTER: f32 = 0.5;
 const PERCENTAGE_ACTIVATION_WHILE: f32 = 0.3;
+const PERCENTAGE_ACTIVATION_CONDITION_CARD_SELF: f32 = 0.3;
+const PERCENTAGE_COST_LP_HALF: f32 = 0.3;
+const MAX_COST_LP: u16 = 8000;
+const PERCENTAGE_COST_DISCARD_ENTIRE: f32 = 0.3;
+const MAX_COST_DISCARD: u8 = 6;
 
 const SUMMONING_TYPES: [&str; 9] = ["Normal Summon", "Ritual Summon", "Set", "Special Summon", "Fusion Summon", "Xyz Summon", "Synchro Summon", "Pendulum Summon", "Link Summon"];
 const EXTRA_SUMMONING_TYPES: [&str; 4] = ["Fusion Summon", "Synchro Summon", "Xyz Summon", "Link Summon"];
@@ -255,10 +260,6 @@ impl Card<'_>
 		{
 			match summoning_restriction.unwrap()
 			{
-				"Synchro Summon" =>
-				{
-					text.push_str("Synchro Monster");
-				}
 				_ => todo!("Text so far: {}\nRestriction: {:?}", text, summoning_restriction)
 			}
 		}
@@ -518,7 +519,15 @@ impl Card<'_>
 		}
 		else
 		{
-			todo!("text so far: {}", text);
+			if rng.gen::<f32>() < PERCENTAGE_ACTIVATION_CONDITION_CARD_SELF
+			{
+				text.push_str("this card ");
+				todo!("text so far: {}", text);
+			}
+			else
+			{
+				todo!("text so far: {}", text);
+			}
 		}
 	}
 
@@ -551,6 +560,11 @@ impl Card<'_>
 	{
 		return card_type != "Quick-Play Spell" && 
 			card_type != "Normal Spell" && card_type != "Normal Trap"
+	}
+
+	pub fn generate_hand_card(text: &mut String)
+	{
+		todo!("text so far: {}", text);
 	}
 
 
@@ -648,7 +662,39 @@ impl Card<'_>
 
 	pub fn generate_cost(text: &mut String)
 	{
-		todo!("text so far: {}", text);
+		let mut rng = rand::thread_rng();
+		let case = rng.gen_range(0..5);
+		match case
+		{
+			0 =>
+			{
+				text.push_str("Pay ");
+				if rng.gen::<f32>() < PERCENTAGE_COST_LP_HALF
+				{
+					text.push_str("half your");
+				}
+				else
+				{
+					text.push_str(&(rng.gen_range(1..MAX_COST_LP) * 100).to_string());
+				}
+				text.push_str("LP");
+			}
+			1 =>
+			{
+				text.push_str("Discard ");
+				if rng.gen::<f32>() < PERCENTAGE_COST_DISCARD_ENTIRE
+				{
+					text.push_str("your entire hand");
+				}
+				else
+				{
+					let amount = rng.gen_range(1..MAX_COST_DISCARD);
+					text.push_str(&amount.to_string());
+					Self::generate_hand_card(text);
+				}
+			}
+			_ => todo!("text so far: {}", text)
+		}
 	}
 
 	pub fn generate_target(text: &mut String)
@@ -723,9 +769,9 @@ impl Card<'_>
 									self.text.push_str("If this card is used as ");
 									let summoning_material_type = Self::get_summoning_material_type();
 									self.text.push_str(summoning_material_type);
-									self.text.push_str(", all other ");
+									self.text.push_str(" Material, all other ");
 									self.text.push_str(summoning_material_type);
-									self.text.push_str("s must be ");
+									self.text.push_str("Materials must be");
 									Self::generate_monster_attributes(&mut self.text, None, None);
 								}
 								2 =>
@@ -735,6 +781,7 @@ impl Card<'_>
 									Self::generate_monster_attributes(&mut self.text, None, None);
 									self.text.push_str(" as ");
 									Self::generate_summoning_material_type(&mut self.text);
+									self.text.push_str(" Material");
 								}
 								_ => panic!("we should not be here")
 							}

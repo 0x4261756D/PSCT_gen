@@ -667,7 +667,7 @@ impl Card<'_>
 		return has_soft_opt;
 	}
 
-	pub fn generate_cost(text: &mut String)
+	pub fn generate_cost(text: &mut String) -> Option<String>
 	{
 		let mut rng = rand::thread_rng();
 		let case = rng.gen_range(0..5);
@@ -685,6 +685,7 @@ impl Card<'_>
 					text.push_str(&(rng.gen_range(1..MAX_COST_LP) * 100).to_string());
 				}
 				text.push_str("LP");
+				return None;
 			}
 			1 =>
 			{
@@ -699,19 +700,38 @@ impl Card<'_>
 					text.push_str(&amount.to_string());
 					Self::generate_hand_card(text);
 				}
+				return None;
 			}
 			_ => todo!("text so far: {}", text)
 		}
 	}
 
-	pub fn generate_target(text: &mut String)
+	pub fn generate_target(text: &mut String) -> Option<String>
 	{
 		todo!("text so far: {}", text);
 	}
 
-	pub fn generate_resolution(text: &mut String)
+	pub fn generate_resolution(text: &mut String, referrer: Option<String>)
 	{
-		todo!("text so far: {}", text);
+		let mut rng = rand::thread_rng();
+		let case = rng.gen_range(0..5);
+		match case
+		{
+			0 =>
+			{
+				text.push_str("Negate the ");
+				if referrer.is_some()
+				{
+					text.push_str(&referrer.unwrap());
+				}
+				else
+				{
+					todo!("text so far: {}", text)
+				}
+			}
+			_ => todo!("text so far: {}", text)
+		}
+		todo!("text so far: {}", text)
 	}
 
 	pub fn generate_sentence(&mut self, can_have_more_conditions: bool) -> bool
@@ -870,20 +890,21 @@ impl Card<'_>
 			self.text.push(':');
 		}
 		let mut is_targeting = false;
+		let mut referrer = None;
 		if rng.gen::<f32>() < PERCENTAGE_GENERATE_COST_OR_TARGET
 		{
 			if rng.gen::<f32>() < PERCENTAGE_GENERATE_COST
 			{
-				Self::generate_cost(&mut self.text);
+				referrer = Self::generate_cost(&mut self.text);
 			}
 			else
 			{
 				is_targeting = true;
-				Self::generate_target(&mut self.text);
+				referrer = Self::generate_target(&mut self.text);
 			}
 			self.text.push(';');
 		}
-		Self::generate_resolution(&mut self.text);
+		Self::generate_resolution(&mut self.text, referrer);
 		if !has_soft_opt && rng.gen::<f32>() < PERCENTAGE_HARD_OPT
 		{
 			self.text.push_str(". You can only activate this effect of ");

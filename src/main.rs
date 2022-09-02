@@ -512,6 +512,28 @@ impl Card<'_>
 
 	pub fn generate_card_anywhere(text: &mut String)
 	{
+		let mut rng = rand::thread_rng();
+		let card_type = rng.gen_range(0..3);
+		match card_type
+		{
+			0 =>
+			{
+				Self::generate_monster_attributes(text, None, false, None);
+			}
+			1 =>
+			{
+				todo!("Spell card anywhere, text until now: {}", text);
+			}
+			2 =>
+			{
+				todo!("Trap card anywhere, text until now: {}", text);
+			}
+			_ => panic!("We shouldn't be here")
+		}
+	}
+
+	pub fn generate_card_main_deck(text: &mut String)
+	{
 		todo!("text so far: {}", text);
 	}
 
@@ -752,7 +774,7 @@ impl Card<'_>
 			{
 				text.push_str("Add ");
 				text.push_str(&rng.gen_range(1..=MAX_RES_ADD_TO_HAND).to_string());
-				Self::generate_card_anywhere(text);
+				Self::generate_card_main_deck(text);
 				text.push_str(" from your ");
 				Self::generate_add_location(text);
 				text.push_str(" to your hand");

@@ -276,6 +276,10 @@ impl Card<'_>
 		{
 			match summoning_restriction.unwrap()
 			{
+				"Link Summon" =>
+				{
+					text.push_str("Link Monster");
+				}
 				_ => todo!("Text so far: {}\nRestriction: {:?}", text, summoning_restriction)
 			}
 		}

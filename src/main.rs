@@ -204,7 +204,7 @@ impl Card<'_>
 		return format!("\"{}\"", "Card Name");
 	}
 
-	pub fn generate_monster_attributes(text: &mut String, summoning_restriction: Option<&str>, level_restriction: Option<u8>)
+	pub fn generate_monster_attributes(text: &mut String, summoning_restriction: Option<&str>, is_material: bool, level_restriction: Option<u8>)
 	{
 		text.push(' ');
 		let mut rng = rand::thread_rng();
@@ -248,15 +248,22 @@ impl Card<'_>
 			Self::generate_archetype(text);
 			text.push(' ');
 		}
-		Self::generate_monster_type(text, summoning_restriction);
+		Self::generate_monster_type(text, summoning_restriction, is_material);
 	}
 
-	pub fn generate_monster_type(text: &mut String, summoning_restriction: Option<&str>)
+	pub fn generate_monster_type(text: &mut String, summoning_restriction: Option<&str>, is_material: bool)
 	{
 		let rng = rand::thread_rng();
 		if summoning_restriction.is_none()
 		{
 			text.push_str(MONSTER_TYPES.choose(&mut rand::thread_rng()).unwrap());
+		}
+		else if is_material
+		{
+			match summoning_restriction.unwrap()
+			{
+				_ => todo!("Text so far: {}\nRestriction: {:?}", text, summoning_restriction)
+			}
 		}
 		else
 		{
@@ -352,7 +359,7 @@ impl Card<'_>
 			{
 				text.push_str("+");
 			}
-			Self::generate_monster_attributes(text, None, None);
+			Self::generate_monster_attributes(text, None, true, None);
 			if amount > 1
 			{
 				text.push('s');
@@ -413,7 +420,7 @@ impl Card<'_>
 		{
 			text.push_str("+");
 		}
-		Self::generate_monster_attributes(text, None, rank);
+		Self::generate_monster_attributes(text, None, true, rank);
 		if amount > 1
 		{
 			text.push('s');
@@ -429,7 +436,7 @@ impl Card<'_>
 		{
 			text.push_str("+");
 		}
-		Self::generate_monster_attributes(text, None, None);
+		Self::generate_monster_attributes(text, None, true, None);
 		if amount > 1
 		{
 			text.push('s');
@@ -508,6 +515,11 @@ impl Card<'_>
 		todo!("text so far: {}", text);
 	}
 
+	pub fn generate_card_action(text: &mut String)
+	{
+		todo!("text so far: {}", text);
+	}
+
 	pub fn generate_activation_condition_main(text: &mut String)
 	{
 		let mut rng = rand::thread_rng();		
@@ -529,14 +541,14 @@ impl Card<'_>
 			if rng.gen::<f32>() < PERCENTAGE_ACTIVATION_CONDITION_CARD_SELF
 			{
 				text.push_str("this card ");
-				todo!("text so far: {}", text);
 			}
 			else
 			{
 				text.push_str("a ");
 				Self::generate_card_anywhere(text);
-				todo!("text so far: {}", text);
 			}
+			Self::generate_card_action(text);
+			todo!("text so far: {}", text);
 		}
 	}
 
@@ -815,13 +827,13 @@ impl Card<'_>
 									self.text.push_str(" Material, all other ");
 									self.text.push_str(summoning_material_type);
 									self.text.push_str("Materials must be");
-									Self::generate_monster_attributes(&mut self.text, None, None);
+									Self::generate_monster_attributes(&mut self.text, None, false, None);
 								}
 								2 =>
 								{
 									Self::generate_person(&mut self.text);
 									self.text.push_str(" can only use ");
-									Self::generate_monster_attributes(&mut self.text, None, None);
+									Self::generate_monster_attributes(&mut self.text, None, false, None);
 									self.text.push_str(" as ");
 									Self::generate_summoning_material_type(&mut self.text);
 									self.text.push_str(" Material");
@@ -843,7 +855,7 @@ impl Card<'_>
 							let summoning_type = &Self::get_summoning_type_by_material(summoning_material_type);
 							self.text.push_str(summoning_type);
 							self.text.push_str(" of a");
-							Self::generate_monster_attributes(&mut self.text, Some(summoning_type), None);
+							Self::generate_monster_attributes(&mut self.text, Some(summoning_type), false, None);
 						}
 						_ => panic!("We should not be here")
 					}
@@ -855,7 +867,7 @@ impl Card<'_>
 					self.text.push_str(summoning_type);
 					self.text.push_str(", you can substitute this card for any ");
 					self.text.push_str(&rng.gen_range(1..=MAX_MAT_SUBSTITUTIONS).to_string());
-					Self::generate_monster_attributes(&mut self.text, Some(summoning_type), None);
+					Self::generate_monster_attributes(&mut self.text, Some(summoning_type), false, None);
 				}
 				3 =>
 				{

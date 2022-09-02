@@ -501,6 +501,11 @@ impl Card<'_>
 		}
 	}
 
+	pub fn generate_card_anywhere(text: &mut String)
+	{
+		todo!("text so far: {}", text);
+	}
+
 	pub fn generate_activation_condition_main(text: &mut String)
 	{
 		let mut rng = rand::thread_rng();		
@@ -526,6 +531,8 @@ impl Card<'_>
 			}
 			else
 			{
+				text.push_str("a ");
+				Self::generate_card_anywhere(text);
 				todo!("text so far: {}", text);
 			}
 		}

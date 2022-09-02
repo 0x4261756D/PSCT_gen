@@ -36,6 +36,10 @@ const PERCENTAGE_SOFT_OPT: f32 = 0.4;
 const PERCENTAGE_FURTHER_ACTIVATION_CONDITION: f32 = 0.7;
 const PERCENTAGE_IS_QUICK: f32 = 0.2;
 const PERCENTAGE_HARD_OPT: f32 = 0.2;
+const PERCENTAGE_ACTIVATION_CONDITION_PLAYER: f32 = 0.3;
+const PERCENTAGE_ACTIVATION_CONDITION_PLAYER_OPPONENT: f32 = 0.3;
+const PERCENTAGE_ONCE_WHILE_FACEUP: f32 = 0.2;
+const PERCENTAGE_ACTIVATION_CONDITION_PHASE: f32 = 0.3;
 
 const SUMMONING_TYPES: [&str; 9] = ["Normal Summon", "Ritual Summon", "Set", "Special Summon", "Fusion Summon", "Xyz Summon", "Synchro Summon", "Pendulum Summon", "Link Summon"];
 const EXTRA_SUMMONING_TYPES: [&str; 4] = ["Fusion Summon", "Synchro Summon", "Xyz Summon", "Link Summon"];
@@ -48,6 +52,7 @@ const ATTRIBUTES: [&str; 6] = ["DARK", "LIGHT", "EARTH", "WIND", "WATER", "FIRE"
 const TYPES: [&str; 23] = ["Aqua", "Beast", "Beast-Warrior", "Cyberse", "Dinosaur", "Dragon", "Fairy", "Fiend", "Fish", "Insect", "Machine", "Plant", "Psychic", "Pyro", "Reptile", "Rock", "Sea Serpent", "Spellcaster", "Thunder", "Warrior", "Winged Beast", "Wyrm", "Zombie"];
 const MONSTER_TYPES: [&str; 6] = ["Fusion Monster", "Synchro Monster", "Xyz Monster", "Link Monster", "Effect Monster", "monster"];
 const CARD_TYPES: [&str; 13] = ["Fusion Monster", "Synchro Monster", "Xyz Monster", "Link Monster", "Effect Monster", "Field Spell", "Continuous Spell", "Quick-Play Spell", "Equip Spell", "Normal Spell", "Continuous Trap", "Counter Trap", "Normal Trap"];
+const PHASES: [&str; 7] = ["Draw Phase", "Standby Phase", "Main Phase", "Main Phase 1", "Main Phase 2", "Battle Phase", "End Phase"];
 
 #[derive(Debug)]
 struct Card<'a>
@@ -437,43 +442,114 @@ impl Card<'_>
 		self.text.push('\n');
 	}
 
+	pub fn generate_player_action(text: &mut String)
+	{
+		todo!("text so far: {}", text);
+	}
+
+	pub fn generate_phase(text: &mut String)
+	{
+		text.push_str(PHASES.choose(&mut rand::thread_rng()).unwrap());
+	}
+
 
 	pub fn generate_activation_condition(text: &mut String, card_type: &str) -> bool
 	{
 		let mut rng = rand::thread_rng();
 		let mut has_soft_opt = false;
-		if rng.gen::<f32>() < PERCENTAGE_SOFT_OPT
+		if card_type.to_string() != "Quick-Play Spell" && rng.gen::<f32>() < PERCENTAGE_SOFT_OPT
 		{
 			text.push_str("Once per turn");
 			has_soft_opt = true;
 		}
+		if !has_soft_opt && rng.gen::<f32>() < PERCENTAGE_ONCE_WHILE_FACEUP
+		{
+			text.push_str("Once while face-up on the field");
+			has_soft_opt = true;
+		}
 		if !has_soft_opt || rng.gen::<f32>() < PERCENTAGE_FURTHER_ACTIVATION_CONDITION
 		{
-			if rng.gen::<f32>() < PERCENTAGE_MISS_TIMING
+			if rng.gen::<f32>() < PERCENTAGE_ACTIVATION_CONDITION_PHASE
 			{
 				if has_soft_opt
 				{
-					text.push_str(", when");
+					text.push_str(", during ");
 				}
 				else
 				{
-					text.push_str("When");
+					text.push_str("During ");
+				}
+				let case = rng.gen_range(0..3);
+				match case
+				{
+					0 =>
+					{
+						text.push_str("your ");
+					}
+					1 =>
+					{
+						text.push_str("your opponent's ");
+					}
+					2 =>
+					{
+						text.push_str("the ")
+					}
+					_ => panic!("We shouldn't be here")
+				}
+				Self::generate_phase(text);
+				if rng.gen::<f32>() < PERCENTAGE_MISS_TIMING
+				{
+					text.push_str(", when ");
+				}
+				else
+				{
+					text.push_str(", if ");
 				}
 			}
 			else
 			{
-				if has_soft_opt
+				if rng.gen::<f32>() < PERCENTAGE_MISS_TIMING
 				{
-					text.push_str(", if");
+					if has_soft_opt
+					{
+						text.push_str(", when ");
+					}
+					else
+					{
+						text.push_str("When ");
+					}
 				}
 				else
 				{
-					text.push_str("If");
+					if has_soft_opt
+					{
+						text.push_str(", if ");
+					}
+					else
+					{
+						text.push_str("If ");
+					}
 				}
 			}
-			todo!("text so far: {}", text);
+			if rng.gen::<f32>() < PERCENTAGE_ACTIVATION_CONDITION_PLAYER
+			{
+				if rng.gen::<f32>() < PERCENTAGE_ACTIVATION_CONDITION_PLAYER_OPPONENT
+				{
+					text.push_str("your opponent ");
+				}
+				else
+				{
+					text.push_str("you ");
+				}
+				Self::generate_player_action(text);
+				todo!("text so far: {}", text);
+			}
+			else
+			{
+				todo!("text so far: {}", text);
+			}
 		}
-		if !card_type.contains("Trap") && rng.gen::<f32>() < PERCENTAGE_IS_QUICK
+		if card_type.contains("Monster") && rng.gen::<f32>() < PERCENTAGE_IS_QUICK
 		{
 			text.push_str(" (Quick Effect)");
 		}

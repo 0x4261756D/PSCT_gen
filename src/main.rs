@@ -281,6 +281,10 @@ impl Card<'_>
 				{
 					text.push_str(MONSTER_TYPES_WITH_LEVELS.choose(&mut rand::thread_rng()).unwrap());
 				}
+				"Link Summon" =>
+				{
+					text.push_str(MONSTER_TYPES.choose(&mut rand::thread_rng()).unwrap());
+				}
 				_ => todo!("Text so far: {}\nRestriction: {:?}", text, summoning_restriction)
 			}
 		}

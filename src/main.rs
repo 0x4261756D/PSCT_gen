@@ -28,6 +28,9 @@ const PERCENTAGE_FUSION_MAT_NAME: f32 = 0.5;
 const PERCENTAGE_SYNCHRO_MAT_NAME: f32 = 0.5;
 const MAX_SINGLE_SYNCHRO_MAT: u8 = 5;
 const PERCENTAGE_ALLOW_ADDITIONAL_SYNCHRO_MAT: f32 = 0.3;
+const MAX_XYZ_MAT: u8 = 5;
+const PERCENTAGE_ALLOW_ADDITIONAL_XYZ_MAT: f32 = 0.3;
+const PERCENTAGE_ALLOW_ADDITIONAL_LINK_MAT: f32 = 0.3;
 
 const SUMMONING_TYPES: [&str; 9] = ["Normal Summon", "Ritual Summon", "Set", "Special Summon", "Fusion Summon", "Xyz Summon", "Synchro Summon", "Pendulum Summon", "Link Summon"];
 const EXTRA_SUMMONING_TYPES: [&str; 4] = ["Fusion Summon", "Synchro Summon", "Xyz Summon", "Link Summon"];
@@ -51,6 +54,7 @@ struct Card<'a>
 	atk: Option<u16>,
 	def: Option<u16>,
 	text: String,
+	link_arrows: Option<[bool; 8]>,
 }
 
 impl Card<'_>
@@ -67,9 +71,19 @@ impl Card<'_>
 		{
 			None
 		};
+		let link_arrows = if card_type.to_string() == "Link Monster"
+		{
+			let mut arr = [false; 8];
+			rng.fill(&mut arr[..]);
+			Some(arr)
+		}
+		else
+		{
+			None
+		};
 		let def = if card_type.to_string() == "Link Monster"
 		{
-			Some(rng.gen_range(1..=8))
+			link_arrows.unwrap().iter().map(|x| *x as u16).reduce(|x, y| x + y)
 		}
 		else if card_type.contains("Monster")
 		{
@@ -113,6 +127,7 @@ impl Card<'_>
 			atk,
 			def,
 			level,
+			link_arrows,
 		};
 		println!("{:?}", c);
 		c.generate_effect();
@@ -291,7 +306,7 @@ impl Card<'_>
 			text.push_str(&amount.to_string());
 			if rng.gen::<f32>() < PERCENTAGE_ALLOW_ADDITIONAL_FUSION_MAT
 			{
-				text.push_str("+ ");
+				text.push_str("+");
 			}
 			Self::generate_monster_attributes(text, None);
 			if amount > 1
@@ -331,6 +346,38 @@ impl Card<'_>
 		}
 	}
 
+	pub fn generate_xyz_material(text: &mut String)
+	{
+		let mut rng = rand::thread_rng();
+		let amount = rng.gen_range(1..=MAX_XYZ_MAT);
+		text.push_str(&amount.to_string());
+		if rng.gen::<f32>() < PERCENTAGE_ALLOW_ADDITIONAL_XYZ_MAT
+		{
+			text.push_str("+");
+		}
+		Self::generate_monster_attributes(text, None);
+		if amount > 1
+		{
+			text.push('s');
+		}
+	}
+
+	pub fn generate_link_material(text: &mut String, rating: u16)
+	{
+		let mut rng = rand::thread_rng();
+		let amount = rng.gen_range(1..=rating);
+		text.push_str(&amount.to_string());
+		if amount < rating && rng.gen::<f32>() < PERCENTAGE_ALLOW_ADDITIONAL_LINK_MAT
+		{
+			text.push_str("+");
+		}
+		Self::generate_monster_attributes(text, None);
+		if amount > 1
+		{
+			text.push('s');
+		}
+	}
+
 	pub fn generate_materials(&mut self)
 	{
 		let mut rng = rand::thread_rng();
@@ -350,6 +397,14 @@ impl Card<'_>
 				Self::generate_synchro_material(&mut self.text, true);
 				self.text.push_str(" + ");
 				Self::generate_synchro_material(&mut self.text, false);
+			}
+			"Xyz Monster" =>
+			{
+				Self::generate_xyz_material(&mut self.text);
+			}
+			"Link Monster" =>
+			{
+				Self::generate_link_material(&mut self.text, self.def.unwrap());
 			}
 			_ => todo!("text so far: {}", self.text)
 		}

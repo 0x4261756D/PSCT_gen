@@ -55,6 +55,7 @@ const SUMMONING_TYPES: [&str; 9] = ["Normal Summon", "Ritual Summon", "Set", "Sp
 const EXTRA_SUMMONING_TYPES: [&str; 4] = ["Fusion Summon", "Synchro Summon", "Xyz Summon", "Link Summon"];
 const EXTRA_MONSTER_TYPES: [&str; 4] = ["Fusion Monster", "Synchro Monster", "Xyz Monster", "Link Monster"];
 const MAIN_MONSTER_TYPES: [&str; 2] = ["Effect Monster", "monster"];
+const MONSTER_TYPES_WITH_LEVELS: [&str; 3] = ["monster", "Fusion Monster", "Synchro Monster"];
 const SUMMONING_MATERIAL_TYPES: [&str; 4] = ["Fusion", "Synchro", "Xyz", "Link"];
 const LOCATION: [&str; 5] = ["hand", "GY", "Extra Deck", "Deck", "face-up Extra Deck"];
 const IMPERATIVE_ACTIONS: [&str; 3] = ["banishing", "destroying", "excavating"];
@@ -251,7 +252,7 @@ impl Card<'_>
 		}
 	}
 
-	pub fn generate_monster_type(text: &mut String, summoning_restriction: Option<&str>, is_material: bool, include_extradeck: bool)
+	pub fn generate_monster_type(text: &mut String, summoning_restriction: Option<&str>, is_getting_summoned: bool, include_extradeck: bool)
 	{
 		let rng = rand::thread_rng();
 		if summoning_restriction.is_none()
@@ -265,7 +266,7 @@ impl Card<'_>
 				text.push_str(MAIN_MONSTER_TYPES.choose(&mut rand::thread_rng()).unwrap());
 			}
 		}
-		else if is_material
+		else if is_getting_summoned
 		{
 			match summoning_restriction.unwrap()
 			{
@@ -276,9 +277,9 @@ impl Card<'_>
 		{
 			match summoning_restriction.unwrap()
 			{
-				"Link Summon" =>
+				"Xyz Summon" =>
 				{
-					text.push_str("Link Monster");
+					text.push_str(MONSTER_TYPES_WITH_LEVELS.choose(&mut rand::thread_rng()).unwrap());
 				}
 				_ => todo!("Text so far: {}\nRestriction: {:?}", text, summoning_restriction)
 			}

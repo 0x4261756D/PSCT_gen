@@ -54,6 +54,7 @@ const MAX_RES_ADD_TO_HAND: u8 = 3;
 const SUMMONING_TYPES: [&str; 9] = ["Normal Summon", "Ritual Summon", "Set", "Special Summon", "Fusion Summon", "Xyz Summon", "Synchro Summon", "Pendulum Summon", "Link Summon"];
 const EXTRA_SUMMONING_TYPES: [&str; 4] = ["Fusion Summon", "Synchro Summon", "Xyz Summon", "Link Summon"];
 const EXTRA_MONSTER_TYPES: [&str; 4] = ["Fusion Monster", "Synchro Monster", "Xyz Monster", "Link Monster"];
+const MAIN_MONSTER_TYPES: [&str; 2] = ["Effect Monster", "monster"];
 const SUMMONING_MATERIAL_TYPES: [&str; 4] = ["Fusion", "Synchro", "Xyz", "Link"];
 const LOCATION: [&str; 5] = ["hand", "GY", "Extra Deck", "Deck", "face-up Extra Deck"];
 const IMPERATIVE_ACTIONS: [&str; 3] = ["banishing", "destroying", "excavating"];
@@ -250,12 +251,19 @@ impl Card<'_>
 		}
 	}
 
-	pub fn generate_monster_type(text: &mut String, summoning_restriction: Option<&str>, is_material: bool)
+	pub fn generate_monster_type(text: &mut String, summoning_restriction: Option<&str>, is_material: bool, include_extradeck: bool)
 	{
 		let rng = rand::thread_rng();
 		if summoning_restriction.is_none()
 		{
-			text.push_str(MONSTER_TYPES.choose(&mut rand::thread_rng()).unwrap());
+			if include_extradeck
+			{
+				text.push_str(MONSTER_TYPES.choose(&mut rand::thread_rng()).unwrap());
+			}
+			else
+			{
+				text.push_str(MAIN_MONSTER_TYPES.choose(&mut rand::thread_rng()).unwrap());
+			}
 		}
 		else if is_material
 		{
@@ -359,7 +367,7 @@ impl Card<'_>
 				text.push_str("+");
 			}
 			Self::generate_monster_attributes(text, None);
-			Self::generate_monster_type(text, None, true);
+			Self::generate_monster_type(text, None, true, true);
 			if amount > 1
 			{
 				text.push('s');
@@ -421,7 +429,7 @@ impl Card<'_>
 			text.push_str("+");
 		}
 		Self::generate_monster_attributes(text, rank);
-		Self::generate_monster_type(text, None, true);
+		Self::generate_monster_type(text, None, true, true);
 		if amount > 1
 		{
 			text.push('s');
@@ -438,7 +446,7 @@ impl Card<'_>
 			text.push_str("+");
 		}
 		Self::generate_monster_attributes(text, None);
-		Self::generate_monster_type(text, None, true);
+		Self::generate_monster_type(text, None, true, true);
 		if amount > 1
 		{
 			text.push('s');
@@ -512,7 +520,7 @@ impl Card<'_>
 		}
 	}
 
-	pub fn generate_card_anywhere(text: &mut String)
+	pub fn generate_card_anywhere(text: &mut String, include_extradeck: bool)
 	{
 		let mut rng = rand::thread_rng();
 		let card_type = rng.gen_range(0..3);
@@ -521,7 +529,7 @@ impl Card<'_>
 			0 =>
 			{
 				Self::generate_monster_attributes(text, None);
-				Self::generate_monster_type(text, None, false);
+				Self::generate_monster_type(text, None, false, include_extradeck);
 			}
 			1 =>
 			{
@@ -533,11 +541,6 @@ impl Card<'_>
 			}
 			_ => panic!("We shouldn't be here")
 		}
-	}
-
-	pub fn generate_card_main_deck(text: &mut String)
-	{
-		todo!("text so far: {}", text);
 	}
 
 	pub fn generate_card_action(text: &mut String)
@@ -570,7 +573,7 @@ impl Card<'_>
 			else
 			{
 				text.push_str("a ");
-				Self::generate_card_anywhere(text);
+				Self::generate_card_anywhere(text, true);
 			}
 			Self::generate_card_action(text);
 			todo!("text so far: {}", text);
@@ -591,7 +594,6 @@ impl Card<'_>
 				}
 				text.push(' ');
 				Self::generate_damage_type(text);
-				text.push(' ');
 			}
 			_ => todo!("text so far: {}", text)
 		}
@@ -728,7 +730,7 @@ impl Card<'_>
 				{
 					text.push_str(&(rng.gen_range(1..MAX_COST_LP) * 100).to_string());
 				}
-				text.push_str("LP");
+				text.push_str(" LP");
 				return None;
 			}
 			1 =>
@@ -777,7 +779,7 @@ impl Card<'_>
 			{
 				text.push_str("Add ");
 				text.push_str(&rng.gen_range(1..=MAX_RES_ADD_TO_HAND).to_string());
-				Self::generate_card_main_deck(text);
+				Self::generate_card_anywhere(text, false);
 				text.push_str(" from your ");
 				Self::generate_add_location(text);
 				text.push_str(" to your hand");
@@ -853,14 +855,14 @@ impl Card<'_>
 									self.text.push_str(summoning_material_type);
 									self.text.push_str("Materials must be");
 									Self::generate_monster_attributes(&mut self.text, None);
-									Self::generate_monster_type(&mut self.text, None, false);
+									Self::generate_monster_type(&mut self.text, None, false, true);
 								}
 								2 =>
 								{
 									Self::generate_person(&mut self.text);
 									self.text.push_str(" can only use ");
 									Self::generate_monster_attributes(&mut self.text, None);
-									Self::generate_monster_type(&mut self.text, None, false);
+									Self::generate_monster_type(&mut self.text, None, false, true);
 									self.text.push_str(" as ");
 									Self::generate_summoning_material_type(&mut self.text);
 									self.text.push_str(" Material");
@@ -883,7 +885,7 @@ impl Card<'_>
 							self.text.push_str(summoning_type);
 							self.text.push_str(" of a");
 							Self::generate_monster_attributes(&mut self.text, None);
-							Self::generate_monster_type(&mut self.text, Some(summoning_type), false);
+							Self::generate_monster_type(&mut self.text, Some(summoning_type), false, true);
 						}
 						_ => panic!("We should not be here")
 					}
@@ -896,7 +898,7 @@ impl Card<'_>
 					self.text.push_str(", you can substitute this card for any ");
 					self.text.push_str(&rng.gen_range(1..=MAX_MAT_SUBSTITUTIONS).to_string());
 					Self::generate_monster_attributes(&mut self.text, None);
-					Self::generate_monster_type(&mut self.text, Some(summoning_type), false);
+					Self::generate_monster_type(&mut self.text, Some(summoning_type), false, true);
 				}
 				3 =>
 				{

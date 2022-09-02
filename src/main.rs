@@ -117,9 +117,16 @@ impl Card<'_>
 		{
 			None
 		};
-		let level = if card_type.contains("Monster") && !(card_type.to_string() == "Link Monster")
+		let level = if card_type.contains("Monster") && card_type.to_string() != "Link Monster"
 		{
-			Some(rng.gen_range(1..12))
+			if card_type.to_string() == "Synchro Monster"
+			{
+				Some(rng.gen_range(2..12))
+			}
+			else
+			{
+				Some(rng.gen_range(1..12))
+			}
 		}
 		else
 		{

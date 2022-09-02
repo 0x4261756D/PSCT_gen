@@ -49,6 +49,7 @@ const PERCENTAGE_COST_LP_HALF: f32 = 0.3;
 const MAX_COST_LP: u16 = 8000;
 const PERCENTAGE_COST_DISCARD_ENTIRE: f32 = 0.3;
 const MAX_COST_DISCARD: u8 = 6;
+const MAX_RES_ADD_TO_HAND: u8 = 3;
 
 const SUMMONING_TYPES: [&str; 9] = ["Normal Summon", "Ritual Summon", "Set", "Special Summon", "Fusion Summon", "Xyz Summon", "Synchro Summon", "Pendulum Summon", "Link Summon"];
 const EXTRA_SUMMONING_TYPES: [&str; 4] = ["Fusion Summon", "Synchro Summon", "Xyz Summon", "Link Summon"];
@@ -63,6 +64,7 @@ const MONSTER_TYPES: [&str; 6] = ["Fusion Monster", "Synchro Monster", "Xyz Mons
 const CARD_TYPES: [&str; 13] = ["Fusion Monster", "Synchro Monster", "Xyz Monster", "Link Monster", "Effect Monster", "Field Spell", "Continuous Spell", "Quick-Play Spell", "Equip Spell", "Normal Spell", "Continuous Trap", "Counter Trap", "Normal Trap"];
 const PHASES: [&str; 7] = ["Draw Phase", "Standby Phase", "Main Phase", "Main Phase 1", "Main Phase 2", "Battle Phase", "End Phase"];
 const DAMAGE_TYPES: [&str; 3] = ["battle damage", "effect damage", "damage"];
+const ADD_LOCATIONS: [&str; 2] = ["Deck", "GY"];
 
 #[derive(Debug)]
 struct Card<'a>
@@ -574,6 +576,11 @@ impl Card<'_>
 		todo!("text so far: {}", text);
 	}
 
+	pub fn generate_add_location(text: &mut String)
+	{
+		text.push_str(ADD_LOCATIONS.choose(&mut rand::thread_rng()).unwrap());
+	}
+
 
 	pub fn generate_activation_condition(text: &mut String, card_type: &str) -> bool
 	{
@@ -728,6 +735,15 @@ impl Card<'_>
 				{
 					todo!("text so far: {}", text)
 				}
+			}
+			1 =>
+			{
+				text.push_str("Add ");
+				text.push_str(&rng.gen_range(1..=MAX_RES_ADD_TO_HAND).to_string());
+				Self::generate_card_anywhere(text);
+				text.push_str(" from your ");
+				Self::generate_add_location(text);
+				text.push_str(" to your hand");
 			}
 			_ => todo!("text so far: {}", text)
 		}

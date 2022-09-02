@@ -41,6 +41,7 @@ const IMPERATIVE_ACTIONS: [&str; 3] = ["banishing", "destroying", "excavating"];
 const PEOPLE: [&str; 3] = ["you", "your opponent", "the controller of this card"];
 const ATTRIBUTES: [&str; 6] = ["DARK", "LIGHT", "EARTH", "WIND", "WATER", "FIRE"];
 const TYPES: [&str; 23] = ["Aqua", "Beast", "Beast-Warrior", "Cyberse", "Dinosaur", "Dragon", "Fairy", "Fiend", "Fish", "Insect", "Machine", "Plant", "Psychic", "Pyro", "Reptile", "Rock", "Sea Serpent", "Spellcaster", "Thunder", "Warrior", "Winged Beast", "Wyrm", "Zombie"];
+const MONSTER_TYPES: [&str; 6] = ["Fusion Monster", "Synchro Monster", "Xyz Monster", "Link Monster", "Effect Monster", "monster"];
 const CARD_TYPES: [&str; 13] = ["Fusion Monster", "Synchro Monster", "Xyz Monster", "Link Monster", "Effect Monster", "Field Spell", "Continuous Spell", "Quick-Play Spell", "Equip Spell", "Normal Spell", "Continuous Trap", "Counter Trap", "Normal Trap"];
 
 #[derive(Debug)]
@@ -216,10 +217,14 @@ impl Card<'_>
 
 	pub fn generate_monster_type(text: &mut String, monster_restriction: Option<&str>)
 	{
-		println!("{:?}", monster_restriction);
-		match monster_restriction
+		let rng = rand::thread_rng();
+		if monster_restriction.is_none()
 		{
-			_ => todo!("text till here: {}", text)
+			text.push_str(MONSTER_TYPES.choose(&mut rand::thread_rng()).unwrap());
+		}
+		else
+		{
+			todo!("Text so far: {}\nRestriction: {:?}", text, monster_restriction);
 		}
 	}
 
@@ -519,7 +524,7 @@ impl Card<'_>
 							self.text.push_str(", except for the ");
 							let summoning_type = &Self::get_summoning_type_by_material(summoning_material_type);
 							self.text.push_str(summoning_type);
-							self.text.push_str(" of a ");
+							self.text.push_str(" of a");
 							Self::generate_monster_attributes(&mut self.text, Some(summoning_type));
 						}
 						_ => panic!("We should not be here")

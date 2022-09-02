@@ -40,6 +40,10 @@ const PERCENTAGE_ACTIVATION_CONDITION_PLAYER: f32 = 0.3;
 const PERCENTAGE_ACTIVATION_CONDITION_PLAYER_OPPONENT: f32 = 0.3;
 const PERCENTAGE_ONCE_WHILE_FACEUP: f32 = 0.2;
 const PERCENTAGE_ACTIVATION_CONDITION_PHASE: f32 = 0.3;
+const PERCENTAGE_DAMAGE_TYPE_BATTLE_FURTHER: f32 = 0.3;
+const PERCENTAGE_DAMAGE_TYPE_BATTLE_OPPONENTS: f32 = 0.5;
+const PERCENTAGE_DAMAGE_TYPE_BATTLE_MONSTER: f32 = 0.5;
+const PERCENTAGE_ACTIVATION_WHILE: f32 = 0.3;
 
 const SUMMONING_TYPES: [&str; 9] = ["Normal Summon", "Ritual Summon", "Set", "Special Summon", "Fusion Summon", "Xyz Summon", "Synchro Summon", "Pendulum Summon", "Link Summon"];
 const EXTRA_SUMMONING_TYPES: [&str; 4] = ["Fusion Summon", "Synchro Summon", "Xyz Summon", "Link Summon"];
@@ -53,6 +57,7 @@ const TYPES: [&str; 23] = ["Aqua", "Beast", "Beast-Warrior", "Cyberse", "Dinosau
 const MONSTER_TYPES: [&str; 6] = ["Fusion Monster", "Synchro Monster", "Xyz Monster", "Link Monster", "Effect Monster", "monster"];
 const CARD_TYPES: [&str; 13] = ["Fusion Monster", "Synchro Monster", "Xyz Monster", "Link Monster", "Effect Monster", "Field Spell", "Continuous Spell", "Quick-Play Spell", "Equip Spell", "Normal Spell", "Continuous Trap", "Counter Trap", "Normal Trap"];
 const PHASES: [&str; 7] = ["Draw Phase", "Standby Phase", "Main Phase", "Main Phase 1", "Main Phase 2", "Battle Phase", "End Phase"];
+const DAMAGE_TYPES: [&str; 3] = ["battle damage", "effect damage", "damage"];
 
 #[derive(Debug)]
 struct Card<'a>
@@ -185,22 +190,29 @@ impl Card<'_>
 		return format!("\"{}\"", "Card Name");
 	}
 
-	pub fn generate_monster_attributes(text: &mut String, monster_restrictions: Option<&str>)
+	pub fn generate_monster_attributes(text: &mut String, summoning_restriction: Option<&str>, level_restriction: Option<u8>)
 	{
 		text.push(' ');
 		let mut rng = rand::thread_rng();
 		if rng.gen::<f32>() < PERCENTAGE_GENERATE_ATTRIBUTE_MONSTER_LEVEL
 		{
 			text.push_str("level ");
-			text.push_str(&rng.gen_range(1..=12).to_string());
-			let higher_lower = rng.gen_range(0..3);
-			if higher_lower == 0
+			text.push_str(&rng.gen_range(1..=level_restriction.unwrap_or(12)).to_string());
+			if level_restriction.is_none()
 			{
-				text.push_str(" or higher ");
-			}
-			else if higher_lower == 1
-			{
-				text.push_str(" or lower ");
+				let higher_lower = rng.gen_range(0..3);
+				if higher_lower == 0
+				{
+					text.push_str(" or higher ");
+				}
+				else if higher_lower == 1
+				{
+					text.push_str(" or lower ");
+				}
+				else
+				{
+					text.push(' ');
+				}
 			}
 			else
 			{
@@ -222,19 +234,26 @@ impl Card<'_>
 			Self::generate_archetype(text);
 			text.push(' ');
 		}
-		Self::generate_monster_type(text, monster_restrictions);
+		Self::generate_monster_type(text, summoning_restriction);
 	}
 
-	pub fn generate_monster_type(text: &mut String, monster_restriction: Option<&str>)
+	pub fn generate_monster_type(text: &mut String, summoning_restriction: Option<&str>)
 	{
 		let rng = rand::thread_rng();
-		if monster_restriction.is_none()
+		if summoning_restriction.is_none()
 		{
 			text.push_str(MONSTER_TYPES.choose(&mut rand::thread_rng()).unwrap());
 		}
 		else
 		{
-			todo!("Text so far: {}\nRestriction: {:?}", text, monster_restriction);
+			match summoning_restriction.unwrap()
+			{
+				"Synchro Summon" =>
+				{
+					text.push_str("Synchro Monster");
+				}
+				_ => todo!("Text so far: {}\nRestriction: {:?}", text, summoning_restriction)
+			}
 		}
 	}
 
@@ -323,7 +342,7 @@ impl Card<'_>
 			{
 				text.push_str("+");
 			}
-			Self::generate_monster_attributes(text, None);
+			Self::generate_monster_attributes(text, None, None);
 			if amount > 1
 			{
 				text.push('s');
@@ -375,7 +394,7 @@ impl Card<'_>
 		}
 	}
 
-	pub fn generate_xyz_material(text: &mut String)
+	pub fn generate_xyz_material(text: &mut String, rank: Option<u8>)
 	{
 		let mut rng = rand::thread_rng();
 		let amount = rng.gen_range(1..=MAX_XYZ_MAT);
@@ -384,7 +403,7 @@ impl Card<'_>
 		{
 			text.push_str("+");
 		}
-		Self::generate_monster_attributes(text, None);
+		Self::generate_monster_attributes(text, None, rank);
 		if amount > 1
 		{
 			text.push('s');
@@ -400,7 +419,7 @@ impl Card<'_>
 		{
 			text.push_str("+");
 		}
-		Self::generate_monster_attributes(text, None);
+		Self::generate_monster_attributes(text, None, None);
 		if amount > 1
 		{
 			text.push('s');
@@ -431,20 +450,89 @@ impl Card<'_>
 			}
 			"Xyz Monster" =>
 			{
-				Self::generate_xyz_material(&mut self.text);
+				Self::generate_xyz_material(&mut self.text, self.level);
 			}
 			"Link Monster" =>
 			{
 				Self::generate_link_material(&mut self.text, self.def.unwrap());
 			}
-			_ => todo!("text so far: {}", self.text)
+			_ => panic!("We shouldn't be here")
 		}
 		self.text.push('\n');
 	}
 
-	pub fn generate_player_action(text: &mut String)
+	pub fn get_damage_type() -> &'static str
 	{
-		todo!("text so far: {}", text);
+		return DAMAGE_TYPES.choose(&mut rand::thread_rng()).unwrap();
+	}
+
+	pub fn generate_damage_type(text: &mut String)
+	{
+		let mut rng = rand::thread_rng();
+		let damage_type = Self::get_damage_type();
+		text.push_str(damage_type);
+		if damage_type.to_string() == "battle damage" && rng.gen::<f32>() < PERCENTAGE_DAMAGE_TYPE_BATTLE_FURTHER
+		{
+			text.push_str(" from");
+			if rng.gen::<f32>() < PERCENTAGE_DAMAGE_TYPE_BATTLE_OPPONENTS
+			{
+				text.push_str(" an opponent's");
+			}
+			else
+			{
+				text.push_str(" your");
+			}
+			if rng.gen::<f32>() < PERCENTAGE_DAMAGE_TYPE_BATTLE_MONSTER
+			{
+				text.push_str(" attacking monster");
+			}
+			else
+			{
+				text.push_str(" direct attack");
+			}
+		}
+	}
+
+	pub fn generate_activation_condition_main(text: &mut String)
+	{
+		let mut rng = rand::thread_rng();		
+		if rng.gen::<f32>() < PERCENTAGE_ACTIVATION_CONDITION_PLAYER
+		{
+			if rng.gen::<f32>() < PERCENTAGE_ACTIVATION_CONDITION_PLAYER_OPPONENT
+			{
+				text.push_str("your opponent ");
+				Self::generate_player_action(text, true);
+			}
+			else
+			{
+				text.push_str("you ");
+				Self::generate_player_action(text, false);
+			}
+		}
+		else
+		{
+			todo!("text so far: {}", text);
+		}
+	}
+
+	pub fn generate_player_action(text: &mut String, is_opponent: bool)
+	{
+		let mut rng = rand::thread_rng();
+		match rng.gen_range(0..5)
+		{
+			0 =>
+			{
+				text.push_str("take");
+				if is_opponent
+				{
+					text.push('s');
+				}
+				text.push(' ');
+				Self::generate_damage_type(text);
+				text.push(' ');
+			}
+			_ => todo!("text so far: {}", text)
+		}
 	}
 
 	pub fn generate_phase(text: &mut String)
@@ -537,22 +625,11 @@ impl Card<'_>
 					}
 				}
 			}
-			if rng.gen::<f32>() < PERCENTAGE_ACTIVATION_CONDITION_PLAYER
+			Self::generate_activation_condition_main(text);
+			if rng.gen::<f32>() < PERCENTAGE_ACTIVATION_WHILE
 			{
-				if rng.gen::<f32>() < PERCENTAGE_ACTIVATION_CONDITION_PLAYER_OPPONENT
-				{
-					text.push_str("your opponent ");
-				}
-				else
-				{
-					text.push_str("you ");
-				}
-				Self::generate_player_action(text);
-				todo!("text so far: {}", text);
-			}
-			else
-			{
-				todo!("text so far: {}", text);
+				text.push_str(", while ");
+				Self::generate_activation_condition_main(text);
 			}
 		}
 		if card_type.contains("Monster") && rng.gen::<f32>() < PERCENTAGE_IS_QUICK
@@ -577,10 +654,10 @@ impl Card<'_>
 		todo!("text so far: {}", text);
 	}
 
-	pub fn generate_sentence(&mut self)
+	pub fn generate_sentence(&mut self, can_have_more_conditions: bool) -> bool
 	{
 		let mut rng = rand::thread_rng();
-		if rng.gen::<f32>() < PERCENTAGE_GENERATE_CONDITION
+		if can_have_more_conditions && rng.gen::<f32>() < PERCENTAGE_GENERATE_CONDITION
 		{
 			let cond_case = rng.gen_range(0..CONDITION_CASES);
 			println!("cond_case: {}", cond_case);
@@ -590,8 +667,7 @@ impl Card<'_>
 				{
 					if !self.card_type.contains("Monster")
 					{
-						self.generate_sentence();
-						return;
+						return self.generate_sentence(can_have_more_conditions);
 					}
 					self.text.push_str("Cannot be ");
 					let summoning_type = Self::get_summoning_type();
@@ -643,13 +719,13 @@ impl Card<'_>
 									self.text.push_str(", all other ");
 									self.text.push_str(summoning_material_type);
 									self.text.push_str("s must be ");
-									Self::generate_monster_attributes(&mut self.text, None);
+									Self::generate_monster_attributes(&mut self.text, None, None);
 								}
 								2 =>
 								{
 									Self::generate_person(&mut self.text);
 									self.text.push_str(" can only use ");
-									Self::generate_monster_attributes(&mut self.text, None);
+									Self::generate_monster_attributes(&mut self.text, None, None);
 									self.text.push_str(" as ");
 									Self::generate_summoning_material_type(&mut self.text);
 								}
@@ -670,7 +746,7 @@ impl Card<'_>
 							let summoning_type = &Self::get_summoning_type_by_material(summoning_material_type);
 							self.text.push_str(summoning_type);
 							self.text.push_str(" of a");
-							Self::generate_monster_attributes(&mut self.text, Some(summoning_type));
+							Self::generate_monster_attributes(&mut self.text, Some(summoning_type), None);
 						}
 						_ => panic!("We should not be here")
 					}
@@ -682,7 +758,7 @@ impl Card<'_>
 					self.text.push_str(summoning_type);
 					self.text.push_str(", you can substitute this card for any ");
 					self.text.push_str(&rng.gen_range(1..=MAX_MAT_SUBSTITUTIONS).to_string());
-					Self::generate_monster_attributes(&mut self.text, Some(summoning_type));
+					Self::generate_monster_attributes(&mut self.text, Some(summoning_type), None);
 				}
 				3 =>
 				{
@@ -693,19 +769,18 @@ impl Card<'_>
 				4 =>
 				{
 					self.text.push_str(&format!("(This card's name is always treated as {}.)", Self::get_card_name()));
-					return;
+					return true;
 				}
 				5 =>
 				{
 					self.text.push_str(&format!("(This card is always treated as an {} card.)", Self::get_archetype()));
-					return;
+					return true;
 				}
 				6 =>
 				{
 					if self.card_type == "Link Monster" || !self.card_type.contains("Monster")
 					{
-						Self::generate_sentence(self);
-						return;
+						return self.generate_sentence(can_have_more_conditions);
 					}
 					self.text.push_str("(This card's original ");
 					if self.card_type == "Xyz Monster"
@@ -719,12 +794,12 @@ impl Card<'_>
 					self.text.push_str(" is always treated as ");
 					self.text.push_str(&rng.gen_range(0..13).to_string());
 					self.text.push_str(".)");
-					return;
+					return true;
 				}
 				_ => panic!("We should not be here")
 			}
 			self.text.push('.');
-			return;
+			return true;
 		}
 		println!("Generating normal effect");
 		let mut has_soft_opt = false;
@@ -756,23 +831,20 @@ impl Card<'_>
 			// No twice/thrice here...
 		}
 		self.text.push('.');
+		return false;
 	}
 
 	pub fn generate_effect(&mut self)
 	{
 		if EXTRA_MONSTER_TYPES.contains(&self.card_type)
 		{
-			Self::generate_materials(self);
+			self.generate_materials();
 		}
-		else
-		{
-			println!("{} is not in extra monster types", self.card_type);
-		}
-		Self::generate_sentence(self);
+		let mut can_have_more_conditions = self.generate_sentence(true);
 		while rand::random::<f32>() < PERCENTAGE_GENERATE_SENTENCE
 		{
 			self.text.push(' ');
-			Self::generate_sentence(self);
+			can_have_more_conditions = self.generate_sentence(can_have_more_conditions);
 		}
 	}
 }

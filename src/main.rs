@@ -452,17 +452,23 @@ impl Card<'_>
 		text.push_str(PHASES.choose(&mut rand::thread_rng()).unwrap());
 	}
 
+	pub fn can_have_soft_opt(card_type: String) -> bool
+	{
+		return card_type != "Quick-Play Spell" && 
+			card_type != "Normal Spell" && card_type != "Normal Trap"
+	}
+
 
 	pub fn generate_activation_condition(text: &mut String, card_type: &str) -> bool
 	{
 		let mut rng = rand::thread_rng();
 		let mut has_soft_opt = false;
-		if card_type.to_string() != "Quick-Play Spell" && rng.gen::<f32>() < PERCENTAGE_SOFT_OPT
+		if Self::can_have_soft_opt(card_type.to_string()) && rng.gen::<f32>() < PERCENTAGE_SOFT_OPT
 		{
 			text.push_str("Once per turn");
 			has_soft_opt = true;
 		}
-		if !has_soft_opt && rng.gen::<f32>() < PERCENTAGE_ONCE_WHILE_FACEUP
+		if !has_soft_opt && Self::can_have_soft_opt(card_type.to_string()) && rng.gen::<f32>() < PERCENTAGE_ONCE_WHILE_FACEUP
 		{
 			text.push_str("Once while face-up on the field");
 			has_soft_opt = true;

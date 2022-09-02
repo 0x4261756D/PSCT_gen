@@ -253,25 +253,26 @@ impl Card<'_>
 		}
 	}
 
-	pub fn generate_monster_type(text: &mut String, summoning_restriction: Option<&str>, is_getting_summoned: bool, include_extradeck: bool)
+	pub fn get_monster_type(summoning_restriction: Option<&str>, is_getting_summoned: bool,
+		include_extradeck: bool) -> &'static str
 	{
 		let rng = rand::thread_rng();
 		if summoning_restriction.is_none()
 		{
 			if include_extradeck
 			{
-				text.push_str(MONSTER_TYPES.choose(&mut rand::thread_rng()).unwrap());
+				return MONSTER_TYPES.choose(&mut rand::thread_rng()).unwrap();
 			}
 			else
 			{
-				text.push_str(MAIN_MONSTER_TYPES.choose(&mut rand::thread_rng()).unwrap());
+				return MAIN_MONSTER_TYPES.choose(&mut rand::thread_rng()).unwrap();
 			}
 		}
 		else if is_getting_summoned
 		{
 			match summoning_restriction.unwrap()
 			{
-				_ => todo!("Text so far: {}\nRestriction: {:?}", text, summoning_restriction)
+				_ => todo!("Restriction: {:?}", summoning_restriction)
 			}
 		}
 		else
@@ -280,15 +281,21 @@ impl Card<'_>
 			{
 				"Xyz Summon" =>
 				{
-					text.push_str(MONSTER_TYPES_WITH_LEVELS.choose(&mut rand::thread_rng()).unwrap());
+					return MONSTER_TYPES_WITH_LEVELS.choose(&mut rand::thread_rng()).unwrap();
 				}
 				"Link Summon" =>
 				{
-					text.push_str(MONSTER_TYPES.choose(&mut rand::thread_rng()).unwrap());
+					return MONSTER_TYPES.choose(&mut rand::thread_rng()).unwrap();
 				}
-				_ => todo!("Text so far: {}\nRestriction: {:?}", text, summoning_restriction)
+				_ => todo!("Restriction: {:?}", summoning_restriction)
 			}
 		}
+	}
+
+	pub fn generate_monster_type(text: &mut String, summoning_restriction: Option<&str>, 
+		is_getting_summoned: bool, include_extradeck: bool)
+	{
+		text.push_str(Self::get_monster_type(summoning_restriction, is_getting_summoned, include_extradeck));
 	}
 
 	pub fn generate_summoning_type(text: &mut String)
@@ -449,14 +456,16 @@ impl Card<'_>
 	pub fn generate_link_material(text: &mut String, rating: u16)
 	{
 		let mut rng = rand::thread_rng();
+		let typ = Self::get_monster_type(None, true, true);
 		let amount = rng.gen_range(1..=rating);
 		text.push_str(&amount.to_string());
-		if amount < rating && rng.gen::<f32>() < PERCENTAGE_ALLOW_ADDITIONAL_LINK_MAT
+		if (typ.to_string() != "Link Monster" && amount < rating) ||
+			(amount < rating && rng.gen::<f32>() < PERCENTAGE_ALLOW_ADDITIONAL_LINK_MAT)
 		{
 			text.push_str("+");
 		}
 		Self::generate_monster_attributes(text, None);
-		Self::generate_monster_type(text, None, true, true);
+		text.push_str(typ);
 		if amount > 1
 		{
 			text.push('s');

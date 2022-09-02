@@ -51,7 +51,7 @@ struct Card<'a>
 	card_type: &'a str,
 	typ: Option<&'a str>,
 	attribute: Option<&'a str>,
-	level: Option<u16>,
+	level: Option<u8>,
 	atk: Option<u16>,
 	def: Option<u16>,
 	text: String,
@@ -325,12 +325,20 @@ impl Card<'_>
 		}
 	}
 
-	pub fn generate_synchro_material(text: &mut String, is_tuner: bool)
+	pub fn generate_synchro_material(text: &mut String, is_tuner: bool, max: u8) -> u8
 	{
 		let mut rng = rand::thread_rng();
 		if rng.gen::<f32>() < PERCENTAGE_SYNCHRO_MAT_NAME
 		{
-			let amount = rng.gen_range(1..=MAX_SINGLE_SYNCHRO_MAT);
+			let m = if max < MAX_SINGLE_SYNCHRO_MAT
+			{
+				max
+			}
+			else
+			{
+				MAX_SINGLE_SYNCHRO_MAT
+			};
+			let amount = rng.gen_range(1..=m);
 			text.push_str(&amount.to_string());
 			if rng.gen::<f32>() < PERCENTAGE_ALLOW_ADDITIONAL_SYNCHRO_MAT
 			{
@@ -342,12 +350,18 @@ impl Card<'_>
 			}
 			else
 			{
-				text.push_str(" non-Tuner monsters");
+				text.push_str(" non-Tuner monster");
 			}
+			if amount > 1
+			{
+				text.push('s');
+			}
+			return amount;
 		}
 		else
 		{
 			text.push_str(&Self::get_card_name());
+			return 1;
 		}
 	}
 
@@ -391,6 +405,8 @@ impl Card<'_>
 			"Fusion Monster" =>
 			{
 				Self::generate_fusion_material(&mut self.text);
+				self.text.push_str(" + ");
+				Self::generate_fusion_material(&mut self.text);
 				while rng.gen::<f32>() < PERCENTAGE_ANOTHER_FUSION_MATERIAL
 				{
 					self.text.push_str(" + ");
@@ -399,9 +415,9 @@ impl Card<'_>
 			}
 			"Synchro Monster" =>
 			{
-				Self::generate_synchro_material(&mut self.text, true);
+				let count = Self::generate_synchro_material(&mut self.text, true, self.level.unwrap());
 				self.text.push_str(" + ");
-				Self::generate_synchro_material(&mut self.text, false);
+				Self::generate_synchro_material(&mut self.text, false, self.level.unwrap() - count);
 			}
 			"Xyz Monster" =>
 			{
@@ -428,6 +444,11 @@ impl Card<'_>
 	}
 
 	pub fn generate_target(text: &mut String)
+	{
+		todo!("text so far: {}", text);
+	}
+
+	pub fn generate_resolution(text: &mut String)
 	{
 		todo!("text so far: {}", text);
 	}
@@ -521,7 +542,7 @@ impl Card<'_>
 							self.text.push_str("Cannot be used as ");
 							let summoning_material_type = Self::get_summoning_material_type();
 							self.text.push_str(summoning_material_type);
-							self.text.push_str(", except for the ");
+							self.text.push_str(" Material, except for the ");
 							let summoning_type = &Self::get_summoning_type_by_material(summoning_material_type);
 							self.text.push_str(summoning_type);
 							self.text.push_str(" of a");
@@ -585,6 +606,7 @@ impl Card<'_>
 		if rng.gen::<f32>() < PERCENTAGE_GENERATE_ACTIVATION_CONDITION
 		{
 			Self::generate_activation_condition(&mut self.text);
+			self.text.push(':');
 		}
 		let mut is_targeting = false;
 		if rng.gen::<f32>() < PERCENTAGE_GENERATE_COST_OR_TARGET
@@ -598,7 +620,9 @@ impl Card<'_>
 				is_targeting = true;
 				Self::generate_target(&mut self.text);
 			}
+			self.text.push(';');
 		}
+		Self::generate_resolution(&mut self.text);
 		todo!("text till here: {}", self.text);
 		self.text.push('.');
 	}

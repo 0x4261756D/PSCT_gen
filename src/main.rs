@@ -50,6 +50,7 @@ const MAX_COST_LP: u16 = 8000;
 const PERCENTAGE_COST_DISCARD_ENTIRE: f32 = 0.3;
 const MAX_COST_DISCARD: u8 = 6;
 const MAX_RES_ADD_TO_HAND: u8 = 3;
+const PERCENTAGE_RES_ADD_TO_HAND_ALLOW_UP_TO: f32 = 0.3;
 
 const SUMMONING_TYPES: [&str; 9] = ["Normal Summon", "Ritual Summon", "Set", "Special Summon", "Fusion Summon", "Xyz Summon", "Synchro Summon", "Pendulum Summon", "Link Summon"];
 const EXTRA_SUMMONING_TYPES: [&str; 4] = ["Fusion Summon", "Synchro Summon", "Xyz Summon", "Link Summon"];
@@ -557,7 +558,7 @@ impl Card<'_>
 		todo!("text so far: {}", text);
 	}
 
-	pub fn generate_activation_condition_main(text: &mut String)
+	pub fn generate_activation_condition_main(text: &mut String, phase: Option<&str>)
 	{
 		let mut rng = rand::thread_rng();		
 		if rng.gen::<f32>() < PERCENTAGE_ACTIVATION_CONDITION_PLAYER
@@ -565,12 +566,12 @@ impl Card<'_>
 			if rng.gen::<f32>() < PERCENTAGE_ACTIVATION_CONDITION_PLAYER_OPPONENT
 			{
 				text.push_str("your opponent ");
-				Self::generate_player_action(text, true);
+				Self::generate_player_action(text, true, phase);
 			}
 			else
 			{
 				text.push_str("you ");
-				Self::generate_player_action(text, false);
+				Self::generate_player_action(text, false, phase);
 			}
 		}
 		else
@@ -589,7 +590,7 @@ impl Card<'_>
 		}
 	}
 
-	pub fn generate_player_action(text: &mut String, is_opponent: bool)
+	pub fn generate_player_action(text: &mut String, is_opponent: bool, phase: Option<&str>)
 	{
 		let mut rng = rand::thread_rng();
 		match rng.gen_range(0..5)
@@ -602,7 +603,17 @@ impl Card<'_>
 					text.push('s');
 				}
 				text.push(' ');
-				Self::generate_damage_type(text);
+				match phase
+				{
+					Some("Battle Phase") | None =>
+					{
+						Self::generate_damage_type(text);
+					}
+					_ =>
+					{
+						text.push_str("effect damage");
+					}
+				}
 			}
 			_ => todo!("text so far: {}", text)
 		}
@@ -610,7 +621,12 @@ impl Card<'_>
 
 	pub fn generate_phase(text: &mut String)
 	{
-		text.push_str(PHASES.choose(&mut rand::thread_rng()).unwrap());
+		text.push_str(Self::get_phase());
+	}
+
+	pub fn get_phase() -> &'static str
+	{
+		return PHASES.choose(&mut rand::thread_rng()).unwrap();
 	}
 
 	pub fn can_have_soft_opt(card_type: String) -> bool
@@ -634,6 +650,7 @@ impl Card<'_>
 	{
 		let mut rng = rand::thread_rng();
 		let mut has_soft_opt = false;
+		let mut activation_phase = None;
 		if Self::can_have_soft_opt(card_type.to_string()) && rng.gen::<f32>() < PERCENTAGE_SOFT_OPT
 		{
 			text.push_str("Once per turn");
@@ -673,7 +690,9 @@ impl Card<'_>
 					}
 					_ => panic!("We shouldn't be here")
 				}
-				Self::generate_phase(text);
+				let phase = Self::get_phase();
+				activation_phase = Some(phase);
+				text.push_str(phase);
 				if rng.gen::<f32>() < PERCENTAGE_MISS_TIMING
 				{
 					text.push_str(", when ");
@@ -708,11 +727,11 @@ impl Card<'_>
 					}
 				}
 			}
-			Self::generate_activation_condition_main(text);
+			Self::generate_activation_condition_main(text, activation_phase);
 			if rng.gen::<f32>() < PERCENTAGE_ACTIVATION_WHILE
 			{
 				text.push_str(", while ");
-				Self::generate_activation_condition_main(text);
+				Self::generate_activation_condition_main(text, activation_phase);
 			}
 		}
 		if card_type.contains("Monster") && rng.gen::<f32>() < PERCENTAGE_IS_QUICK
@@ -787,7 +806,12 @@ impl Card<'_>
 			1 =>
 			{
 				text.push_str("Add ");
-				text.push_str(&rng.gen_range(1..=MAX_RES_ADD_TO_HAND).to_string());
+				let amount = rng.gen_range(1..=MAX_RES_ADD_TO_HAND);
+				if amount > 1 && rng.gen::<f32>() < PERCENTAGE_RES_ADD_TO_HAND_ALLOW_UP_TO
+				{
+					text.push_str("up to ");
+				}
+				text.push_str(&amount.to_string());
 				Self::generate_card_anywhere(text, false);
 				text.push_str(" from your ");
 				Self::generate_add_location(text);
@@ -1002,6 +1026,6 @@ impl Card<'_>
 
 pub fn main()
 {
-	let mut c = Card::new();
+	let c = Card::new();
 	println!("{:?}", c);
 }

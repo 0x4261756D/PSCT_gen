@@ -216,11 +216,11 @@ impl Card<'_>
 		return format!("\"{}\"", "Card Name");
 	}
 
-	pub fn generate_monster_attributes(text: &mut String, level_restriction: Option<u8>)
+	pub fn generate_monster_attributes(text: &mut String, level_restriction: Option<u8>, needs_level: bool)
 	{
 		text.push(' ');
 		let mut rng = rand::thread_rng();
-		if rng.gen::<f32>() < PERCENTAGE_GENERATE_ATTRIBUTE_MONSTER_LEVEL
+		if needs_level && rng.gen::<f32>() < PERCENTAGE_GENERATE_ATTRIBUTE_MONSTER_LEVEL
 		{
 			text.push_str("level ");
 			text.push_str(&rng.gen_range(1..=level_restriction.unwrap_or(12)).to_string());
@@ -426,7 +426,7 @@ impl Card<'_>
 			{
 				text.push_str("+");
 			}
-			Self::generate_monster_attributes(text, None);
+			Self::generate_monster_attributes(text, None, true);
 			Self::generate_monster_type(text, None, true, true);
 			if amount > 1
 			{
@@ -488,7 +488,9 @@ impl Card<'_>
 		{
 			text.push_str("+");
 		}
-		Self::generate_monster_attributes(text, rank);
+		text.push_str(" level ");
+		text.push_str(&rank.unwrap().to_string());
+		Self::generate_monster_attributes(text, None, false);
 		Self::generate_monster_type(text, None, true, true);
 		if amount > 1
 		{
@@ -507,7 +509,7 @@ impl Card<'_>
 		{
 			text.push_str("+");
 		}
-		Self::generate_monster_attributes(text, None);
+		Self::generate_monster_attributes(text, None, true);
 		text.push_str(typ);
 		if amount > 1
 		{
@@ -590,7 +592,7 @@ impl Card<'_>
 		{
 			0 =>
 			{
-				Self::generate_monster_attributes(text, None);
+				Self::generate_monster_attributes(text, None, true);
 				Self::generate_monster_type(text, None, false, include_extradeck);
 			}
 			1 =>
@@ -692,6 +694,16 @@ impl Card<'_>
 						text.push_str("effect damage");
 					}
 				}
+			}
+			1 =>
+			{
+				text.push_str("control");
+				if is_opponent
+				{
+					text.push('s');
+				}
+				text.push(' ');
+				Self::generate_card_anywhere(text, true);
 			}
 			_ => todo!("text so far: {}", text)
 		}
@@ -1049,14 +1061,14 @@ impl Card<'_>
 									self.text.push_str(" Material, all other ");
 									self.text.push_str(summoning_material_type);
 									self.text.push_str("Materials must be");
-									Self::generate_monster_attributes(&mut self.text, None);
+									Self::generate_monster_attributes(&mut self.text, None, true);
 									Self::generate_monster_type(&mut self.text, None, false, true);
 								}
 								2 =>
 								{
 									Self::generate_person(&mut self.text);
 									self.text.push_str(" can only use ");
-									Self::generate_monster_attributes(&mut self.text, None);
+									Self::generate_monster_attributes(&mut self.text, None, true);
 									Self::generate_monster_type(&mut self.text, None, false, true);
 									self.text.push_str(" as ");
 									Self::generate_summoning_material_type(&mut self.text);
@@ -1079,7 +1091,7 @@ impl Card<'_>
 							let summoning_type = &Self::get_summoning_type_by_material(summoning_material_type);
 							self.text.push_str(summoning_type);
 							self.text.push_str(" of a");
-							Self::generate_monster_attributes(&mut self.text, None);
+							Self::generate_monster_attributes(&mut self.text, None, true);
 							Self::generate_monster_type(&mut self.text, Some(summoning_type), false, true);
 						}
 						_ => panic!("We should not be here")
@@ -1092,12 +1104,12 @@ impl Card<'_>
 					self.text.push_str(summoning_type);
 					self.text.push_str(", you can substitute this card for any ");
 					self.text.push_str(&rng.gen_range(1..=MAX_MAT_SUBSTITUTIONS).to_string());
-					Self::generate_monster_attributes(&mut self.text, None);
+					Self::generate_monster_attributes(&mut self.text, None, true);
 					Self::generate_monster_type(&mut self.text, Some(summoning_type), false, true);
 				}
 				3 =>
 				{
-					Self::generate_activation_condition(&mut self.text, self.card_type);
+					Self::generate_activation_condition_main(&mut self.text, None);
 					self.text.push_str(", you win the Duel");
 					// Match winner cards are useless so they are excluded.
 				}

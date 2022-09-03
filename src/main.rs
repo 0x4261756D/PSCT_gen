@@ -663,6 +663,13 @@ impl Card<'_>
 					text.push_str("by card effect ");
 				}
 			}
+			1 =>
+			{
+				text.push_str("is sent from your ");
+				Self::generate_location(text);
+				text.push_str(" to your ");
+				Self::generate_location(text);
+			}
 			_ => todo!("text so far: {}", text)
 		}
 	}
@@ -937,10 +944,10 @@ impl Card<'_>
 		todo!("text so far: {}", text);
 	}
 
-	pub fn generate_resolution(text: &mut String, referrer: Option<String>)
+	pub fn generate_resolution(text: &mut String, referrer: Option<String>, sentence_start: bool)
 	{
 		let mut rng = rand::thread_rng();
-		let mut start_of_sentence = true;
+		let mut start_of_sentence = sentence_start;
 		if rng.gen::<f32>() < PERCENTAGE_RES_OPTIONAL
 		{
 			text.push_str("You can ");
@@ -1015,7 +1022,7 @@ impl Card<'_>
 		if rng.gen::<f32>() < PERCENTAGE_RESOLUTION_HAS_CONJUNCTION
 		{
 			Self::generate_conjunction(text);
-			Self::generate_resolution(text, referrer);
+			Self::generate_resolution(text, referrer, start_of_sentence);
 		}
 	}
 
@@ -1214,7 +1221,7 @@ impl Card<'_>
 			}
 			self.text.push(';');
 		}
-		Self::generate_resolution(&mut self.text, referrer);
+		Self::generate_resolution(&mut self.text, referrer, true);
 		if !has_soft_opt && rng.gen::<f32>() < PERCENTAGE_HARD_OPT
 		{
 			self.text.push_str(". You can only activate this effect of ");

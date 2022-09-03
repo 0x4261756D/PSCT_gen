@@ -62,6 +62,10 @@ const PERCENTAGE_IS_DISCARDED_SPECIFIES_EFF: f32 = 0.3;
 const PERCENTAGE_SPELL_HAS_ARCHETYPE: f32 = 0.5;
 const PERCENTAGE_RESOLUTION_HAS_CONJUNCTION: f32 = 0.3;
 const PERCENTAGE_TRAP_HAS_ARCHETYPE: f32 = 0.3;
+const MAX_TARGETS: u8 = 5;
+const PERCENTAGE_TARGET_NEED_TO_MEET_REQ_ON_RES: f32 = 0.5;
+const PERCENTAGE_TARGET_DOES_MORE: f32 = 0.4;
+
 
 const SUMMONING_TYPES: [&str; 9] = ["Normal Summon", "Ritual Summon", "Set", "Special Summon", "Fusion Summon", "Xyz Summon", "Synchro Summon", "Pendulum Summon", "Link Summon"];
 const EXTRA_SUMMONING_TYPES: [&str; 4] = ["Fusion Summon", "Synchro Summon", "Xyz Summon", "Link Summon"];
@@ -75,7 +79,7 @@ const PEOPLE: [&str; 3] = ["you", "your opponent", "the controller of this card"
 const ATTRIBUTES: [&str; 6] = ["DARK", "LIGHT", "EARTH", "WIND", "WATER", "FIRE"];
 const TYPES: [&str; 23] = ["Aqua", "Beast", "Beast-Warrior", "Cyberse", "Dinosaur", "Dragon", "Fairy", "Fiend", "Fish", "Insect", "Machine", "Plant", "Psychic", "Pyro", "Reptile", "Rock", "Sea Serpent", "Spellcaster", "Thunder", "Warrior", "Winged Beast", "Wyrm", "Zombie"];
 const MONSTER_TYPES: [&str; 6] = ["Fusion Monster", "Synchro Monster", "Xyz Monster", "Link Monster", "Effect Monster", "monster"];
-const CARD_TYPES: [&str; 15] = ["Fusion Monster", "Synchro Monster", "Xyz Monster", "Link Monster", "Effect Monster", "Field Spell", "Continuous Spell", "Quick-Play Spell", "Equip Spell", "Normal Spell", "Spell Card", "Continuous Trap", "Counter Trap", "Normal Trap", "Trap Card"];
+const CARD_TYPES: [&str; 16] = ["card", "Fusion Monster", "Synchro Monster", "Xyz Monster", "Link Monster", "Effect Monster", "Field Spell", "Continuous Spell", "Quick-Play Spell", "Equip Spell", "Normal Spell", "Spell Card", "Continuous Trap", "Counter Trap", "Normal Trap", "Trap Card"];
 const PHASES: [&str; 7] = ["Draw Phase", "Standby Phase", "Main Phase", "Main Phase 1", "Main Phase 2", "Battle Phase", "End Phase"];
 const DAMAGE_TYPES: [&str; 3] = ["battle damage", "effect damage", "damage"];
 const ADD_LOCATIONS: [&str; 2] = ["Deck", "GY"];
@@ -940,7 +944,42 @@ impl Card<'_>
 
 	pub fn generate_target(text: &mut String) -> Option<String>
 	{
-		todo!("text so far: {}", text);
+		let mut rng = rand::thread_rng();
+		text.push_str("Target ");
+		let amount = rng.gen_range(1..=MAX_TARGETS);
+		text.push_str(&amount.to_string());
+		Self::generate_type(text);
+		if amount > 1
+		{
+			text.push(' ');
+		}
+		let target = if amount > 1
+		{
+			if rng.gen::<f32>() < PERCENTAGE_TARGET_NEED_TO_MEET_REQ_ON_RES
+			{
+				"those targets"
+			}
+			else
+			{
+				"them"
+			}
+		}
+		else
+		{
+			if rng.gen::<f32>() < PERCENTAGE_TARGET_NEED_TO_MEET_REQ_ON_RES
+			{
+				"that target"
+			}
+			else
+			{
+				"it"
+			}
+		};
+		if rng.gen::<f32>() < PERCENTAGE_TARGET_DOES_MORE
+		{
+			Self::generate_resolution(text, Some(target.to_string()), false);
+		}
+		return Some(target.to_string());
 	}
 
 	pub fn generate_resolution(text: &mut String, referrer: Option<String>, sentence_start: bool)

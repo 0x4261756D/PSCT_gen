@@ -667,8 +667,7 @@ impl Card<'_>
 			{
 				text.push_str("is sent from your ");
 				Self::generate_location(text);
-				text.push_str(" to your ");
-				Self::generate_location(text);
+				text.push_str(" to the GY");
 			}
 			_ => todo!("text so far: {}", text)
 		}
@@ -799,7 +798,7 @@ impl Card<'_>
 		}
 		if locations.len() > 1
 		{
-			text.push_str("and/or");
+			text.push_str(" and/or ");
 		}
 		text.push_str(locations.last().unwrap());
 	}
@@ -991,6 +990,7 @@ impl Card<'_>
 					text.push_str("up to ");
 				}
 				text.push_str(&amount.to_string());
+				text.push(' ');
 				Self::generate_card_anywhere(text, false);
 				text.push_str(" from your ");
 				Self::generate_add_location(text);
@@ -1022,7 +1022,8 @@ impl Card<'_>
 		if rng.gen::<f32>() < PERCENTAGE_RESOLUTION_HAS_CONJUNCTION
 		{
 			Self::generate_conjunction(text);
-			Self::generate_resolution(text, referrer, start_of_sentence);
+			text.push(' ');
+			Self::generate_resolution(text, referrer, false);
 		}
 	}
 
@@ -1058,7 +1059,7 @@ impl Card<'_>
 							self.text.push_str("first ");
 						}
 						self.text.push_str("be ");
-						Self::generate_summoning_type(&mut self.text);
+						self.text.push_str(summoning_type);
 						self.text.push_str("ed by ");
 						Self::generate_imperative_action(&mut self.text);
 						Self::generate_target(&mut self.text);

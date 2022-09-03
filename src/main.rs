@@ -56,6 +56,9 @@ const PERCENTAGE_RES_SEND_ALLOW_UP_TO: f32 = 0.3;
 const MAX_RES_SEND: u8 = 10;
 const PERCENTAGE_MORE_LOCATIONS: f32 = 0.2;
 const PERCENTAGE_MORE_SEND_LOCATIONS: f32 = 0.2;
+const PERCENTAGE_IS_DISCARDED_REQ_OPP: f32 = 0.2;
+const PERCENTAGE_IS_DISCARDED_SPECIFIES_GY: f32 = 0.4;
+const PERCENTAGE_IS_DISCARDED_SPECIFIES_EFF: f32 = 0.3;
 
 const SUMMONING_TYPES: [&str; 9] = ["Normal Summon", "Ritual Summon", "Set", "Special Summon", "Fusion Summon", "Xyz Summon", "Synchro Summon", "Pendulum Summon", "Link Summon"];
 const EXTRA_SUMMONING_TYPES: [&str; 4] = ["Fusion Summon", "Synchro Summon", "Xyz Summon", "Link Summon"];
@@ -285,7 +288,7 @@ impl Card<'_>
 		{
 			match summoning_restriction.unwrap()
 			{
-				"Xyz Summon" =>
+				"Xyz Summon" | "Synchro Summon" =>
 				{
 					return MONSTER_TYPES_WITH_LEVELS.choose(&mut rand::thread_rng()).unwrap();
 				}
@@ -293,6 +296,7 @@ impl Card<'_>
 				{
 					return MONSTER_TYPES.choose(&mut rand::thread_rng()).unwrap();
 				}
+
 				_ => todo!("Restriction: {:?}", summoning_restriction)
 			}
 		}
@@ -603,7 +607,33 @@ impl Card<'_>
 
 	pub fn generate_card_action(text: &mut String)
 	{
-		todo!("text so far: {}", text);
+		let mut rng = rand::thread_rng();
+		let case = rng.gen_range(0..5);
+		match case
+		{
+			0 =>
+			{
+				text.push_str("is discarded ");
+				let requires_opponent = rng.gen::<f32>() < PERCENTAGE_IS_DISCARDED_REQ_OPP;
+				if requires_opponent
+				{
+					text.push_str("from your hand ");
+				}
+				if rng.gen::<f32>() < PERCENTAGE_IS_DISCARDED_SPECIFIES_GY
+				{
+					text.push_str("to the GY ");
+				}
+				if requires_opponent
+				{
+					text.push_str("by an opponent's card effect ");
+				}
+				else if rng.gen::<f32>() < PERCENTAGE_IS_DISCARDED_SPECIFIES_EFF
+				{
+					text.push_str("by card effect ");
+				}
+			}
+			_ => todo!("text so far: {}", text)
+		}
 	}
 
 	pub fn generate_activation_condition_main(text: &mut String, phase: Option<&str>)

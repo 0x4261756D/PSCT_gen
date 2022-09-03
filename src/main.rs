@@ -59,6 +59,8 @@ const PERCENTAGE_MORE_SEND_LOCATIONS: f32 = 0.2;
 const PERCENTAGE_IS_DISCARDED_REQ_OPP: f32 = 0.2;
 const PERCENTAGE_IS_DISCARDED_SPECIFIES_GY: f32 = 0.4;
 const PERCENTAGE_IS_DISCARDED_SPECIFIES_EFF: f32 = 0.3;
+const PERCENTAGE_SPELL_HAS_ARCHETYPE: f32 = 0.5;
+const PERCENTAGE_RESOLUTION_HAS_CONJUNCTION: f32 = 0.3;
 
 const SUMMONING_TYPES: [&str; 9] = ["Normal Summon", "Ritual Summon", "Set", "Special Summon", "Fusion Summon", "Xyz Summon", "Synchro Summon", "Pendulum Summon", "Link Summon"];
 const EXTRA_SUMMONING_TYPES: [&str; 4] = ["Fusion Summon", "Synchro Summon", "Xyz Summon", "Link Summon"];
@@ -77,6 +79,8 @@ const PHASES: [&str; 7] = ["Draw Phase", "Standby Phase", "Main Phase", "Main Ph
 const DAMAGE_TYPES: [&str; 3] = ["battle damage", "effect damage", "damage"];
 const ADD_LOCATIONS: [&str; 2] = ["Deck", "GY"];
 const SEND_LOCATIONS: [&str; 3] = ["Deck", "hand", "field"];
+const SPELL_TYPES: [&str; 6] = ["Field Spell", "Continuous Spell", "Quick-Play Spell", "Equip Spell", "Normal Spell", "Spell Card"];
+const CONJUNCTIONS: [&str; 5] = ["and", ", and if you do,", ", also", ", then", ", also, after that, "];
 
 #[derive(Debug)]
 struct Card<'a>
@@ -292,7 +296,7 @@ impl Card<'_>
 				{
 					return MONSTER_TYPES_WITH_LEVELS.choose(&mut rand::thread_rng()).unwrap();
 				}
-				"Link Summon" =>
+				"Link Summon" | "Fusion Summon" =>
 				{
 					return MONSTER_TYPES.choose(&mut rand::thread_rng()).unwrap();
 				}
@@ -300,6 +304,11 @@ impl Card<'_>
 				_ => todo!("Restriction: {:?}", summoning_restriction)
 			}
 		}
+	}
+
+	pub fn generate_spell_type(text: &mut String)
+	{
+		text.push_str(SPELL_TYPES.choose(&mut rand::thread_rng()).unwrap());
 	}
 
 	pub fn generate_monster_type(text: &mut String, summoning_restriction: Option<&str>, 
@@ -321,6 +330,11 @@ impl Card<'_>
 	pub fn generate_location(text: &mut String)
 	{
 		text.push_str(Self::get_location());
+	}
+
+	pub fn generate_conjunction(text: &mut String)
+	{
+		text.push_str(CONJUNCTIONS.choose(&mut rand::thread_rng()).unwrap());
 	}
 
 	pub fn generate_locations(text: &mut String)
@@ -597,6 +611,11 @@ impl Card<'_>
 			}
 			1 =>
 			{
+				if rng.gen::<f32>() < PERCENTAGE_SPELL_HAS_ARCHETYPE
+				{
+					Self::generate_archetype(text);
+				}
+				Self::generate_spell_type(text);
 				todo!("Spell card anywhere, text until now: {}", text);
 			}
 			2 =>
@@ -932,7 +951,7 @@ impl Card<'_>
 				}
 				if referrer.is_some()
 				{
-					text.push_str(&referrer.unwrap());
+					text.push_str(&referrer.as_ref().unwrap());
 				}
 				else
 				{
@@ -983,7 +1002,11 @@ impl Card<'_>
 			}
 			_ => todo!("text so far: {}", text)
 		}
-		todo!("text so far: {}", text)
+		if rng.gen::<f32>() < PERCENTAGE_RESOLUTION_HAS_CONJUNCTION
+		{
+			Self::generate_conjunction(text);
+			Self::generate_resolution(text, referrer);
+		}
 	}
 
 	pub fn generate_sentence(&mut self, can_have_more_conditions: bool) -> bool
@@ -1102,8 +1125,19 @@ impl Card<'_>
 					self.text.push_str("For a ");
 					let summoning_type = Self::get_extra_summoning_type();
 					self.text.push_str(summoning_type);
-					self.text.push_str(", you can substitute this card for any ");
-					self.text.push_str(&rng.gen_range(1..=MAX_MAT_SUBSTITUTIONS).to_string());
+					self.text.push_str(", you can ");
+					match summoning_type
+					{
+						"Fusion Summon" =>
+						{
+							self.text.push_str("substitute this card for any ");
+							self.text.push_str(&rng.gen_range(1..=MAX_MAT_SUBSTITUTIONS).to_string());
+						}
+						_ =>
+						{
+							self.text.push_str("treat this card as a")
+						}
+					}
 					Self::generate_monster_attributes(&mut self.text, None, true);
 					Self::generate_monster_type(&mut self.text, Some(summoning_type), false, true);
 				}

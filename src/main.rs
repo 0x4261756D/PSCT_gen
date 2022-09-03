@@ -51,6 +51,11 @@ const PERCENTAGE_COST_DISCARD_ENTIRE: f32 = 0.3;
 const MAX_COST_DISCARD: u8 = 6;
 const MAX_RES_ADD_TO_HAND: u8 = 3;
 const PERCENTAGE_RES_ADD_TO_HAND_ALLOW_UP_TO: f32 = 0.3;
+const PERCENTAGE_RES_OPTIONAL: f32 = 0.3;
+const PERCENTAGE_RES_SEND_ALLOW_UP_TO: f32 = 0.3;
+const MAX_RES_SEND: u8 = 10;
+const PERCENTAGE_MORE_LOCATIONS: f32 = 0.2;
+const PERCENTAGE_MORE_SEND_LOCATIONS: f32 = 0.2;
 
 const SUMMONING_TYPES: [&str; 9] = ["Normal Summon", "Ritual Summon", "Set", "Special Summon", "Fusion Summon", "Xyz Summon", "Synchro Summon", "Pendulum Summon", "Link Summon"];
 const EXTRA_SUMMONING_TYPES: [&str; 4] = ["Fusion Summon", "Synchro Summon", "Xyz Summon", "Link Summon"];
@@ -68,6 +73,7 @@ const CARD_TYPES: [&str; 13] = ["Fusion Monster", "Synchro Monster", "Xyz Monste
 const PHASES: [&str; 7] = ["Draw Phase", "Standby Phase", "Main Phase", "Main Phase 1", "Main Phase 2", "Battle Phase", "End Phase"];
 const DAMAGE_TYPES: [&str; 3] = ["battle damage", "effect damage", "damage"];
 const ADD_LOCATIONS: [&str; 2] = ["Deck", "GY"];
+const SEND_LOCATIONS: [&str; 3] = ["Deck", "hand", "field"];
 
 #[derive(Debug)]
 struct Card<'a>
@@ -303,9 +309,37 @@ impl Card<'_>
 		text.push_str(Self::get_summoning_type());
 	}
 
+	pub fn get_location() -> &'static str
+	{
+		return LOCATION.choose(&mut rand::thread_rng()).unwrap();
+	}
+
 	pub fn generate_location(text: &mut String)
 	{
-		text.push_str(LOCATION.choose(&mut rand::thread_rng()).unwrap());
+		text.push_str(Self::get_location());
+	}
+
+	pub fn generate_locations(text: &mut String)
+	{
+		let mut locations: Vec<&str> = Vec::new();
+		locations.push(Self::get_location());
+		let mut rng = rand::thread_rng();
+		while locations.len() < LOCATION.len() && rng.gen::<f32>() < PERCENTAGE_MORE_LOCATIONS
+		{
+			locations.push(Self::get_location());
+		}
+		locations.sort();
+		locations.dedup();
+		for i in 0..locations.len() - 1
+		{
+			text.push_str(", ");
+			text.push_str(locations[i]);
+		}
+		if locations.len() > 1
+		{
+			text.push_str("and/or");
+		}
+		text.push_str(locations.last().unwrap());
 	}
 
 	pub fn generate_imperative_action(text: &mut String)
@@ -315,7 +349,12 @@ impl Card<'_>
 
 	pub fn generate_person(text: &mut String)
 	{
-		text.push_str(PEOPLE.choose(&mut rand::thread_rng()).unwrap());
+		text.push_str(Self::get_person());
+	}
+
+	pub fn get_person() -> &'static str
+	{
+		return PEOPLE.choose(&mut rand::thread_rng()).unwrap();
 	}
 
 	pub fn get_extra_summoning_type() -> &'static str
@@ -654,6 +693,39 @@ impl Card<'_>
 		text.push_str(ADD_LOCATIONS.choose(&mut rand::thread_rng()).unwrap());
 	}
 
+	pub fn get_send_location() -> &'static str
+	{
+		return SEND_LOCATIONS.choose(&mut rand::thread_rng()).unwrap();
+	}
+
+	pub fn generate_send_location(text: &mut String)
+	{
+		text.push_str(Self::get_send_location());
+	}
+
+	pub fn generate_send_locations(text: &mut String)
+	{
+		let mut locations: Vec<&str> = Vec::new();
+		locations.push(Self::get_send_location());
+		let mut rng = rand::thread_rng();
+		while locations.len() < SEND_LOCATIONS.len() && rng.gen::<f32>() < PERCENTAGE_MORE_SEND_LOCATIONS
+		{
+			locations.push(Self::get_send_location());
+		}
+		locations.sort();
+		locations.dedup();
+		for i in 0..locations.len() - 1
+		{
+			text.push_str(", ");
+			text.push_str(locations[i]);
+		}
+		if locations.len() > 1
+		{
+			text.push_str("and/or");
+		}
+		text.push_str(locations.last().unwrap());
+	}
+
 
 	pub fn generate_activation_condition(text: &mut String, card_type: &str) -> bool
 	{
@@ -797,24 +869,44 @@ impl Card<'_>
 	pub fn generate_resolution(text: &mut String, referrer: Option<String>)
 	{
 		let mut rng = rand::thread_rng();
+		let mut start_of_sentence = true;
+		if rng.gen::<f32>() < PERCENTAGE_RES_OPTIONAL
+		{
+			text.push_str("You can ");
+			start_of_sentence = false;
+		}
 		let case = rng.gen_range(0..5);
 		match case
 		{
 			0 =>
 			{
-				text.push_str("Negate the ");
+				if start_of_sentence
+				{
+					text.push_str("Negate the ");
+				}
+				else
+				{
+					text.push_str("negate the ");
+				}
 				if referrer.is_some()
 				{
 					text.push_str(&referrer.unwrap());
 				}
 				else
 				{
-					todo!("text so far: {}", text)
+					todo!("text so far: {}", text);
 				}
 			}
 			1 =>
 			{
-				text.push_str("Add ");
+				if start_of_sentence
+				{
+					text.push_str("Add ");
+				}
+				else
+				{
+					text.push_str("add ");
+				}
 				let amount = rng.gen_range(1..=MAX_RES_ADD_TO_HAND);
 				if amount > 1 && rng.gen::<f32>() < PERCENTAGE_RES_ADD_TO_HAND_ALLOW_UP_TO
 				{
@@ -825,6 +917,27 @@ impl Card<'_>
 				text.push_str(" from your ");
 				Self::generate_add_location(text);
 				text.push_str(" to your hand");
+			}
+			2 =>
+			{
+				if start_of_sentence
+				{
+					text.push_str("Send ");
+				}
+				else
+				{
+					text.push_str("send ");
+				}
+				let amount = rng.gen_range(1..=MAX_RES_SEND);
+				if amount > 1 && rng.gen::<f32>() < PERCENTAGE_RES_SEND_ALLOW_UP_TO
+				{
+					text.push_str("up to ");
+				}
+				text.push_str(&amount.to_string());
+				Self::generate_card_anywhere(text, false);
+				text.push_str(" from your ");
+				Self::generate_send_locations(text);
+				text.push_str(" to the GY");
 			}
 			_ => todo!("text so far: {}", text)
 		}
@@ -883,10 +996,20 @@ impl Card<'_>
 							{
 								0 =>
 								{
-									Self::generate_person(&mut self.text);
+									let person = Self::get_person();
+									self.text.push_str(person);
 									self.text.push_str(" cannot ");
 									Self::generate_extra_summoning_types(&mut self.text);
-									self.text.push_str(" unless they use this card as material")
+									self.text.push_str(" unless ");
+									if person.to_string() == "you"
+									{
+										self.text.push_str("you");
+									}
+									else
+									{
+										self.text.push_str("they");
+									}
+									self.text.push_str("use this card as material");
 								}
 								1 =>
 								{

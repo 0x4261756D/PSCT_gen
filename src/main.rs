@@ -65,15 +65,26 @@ const PERCENTAGE_TRAP_HAS_ARCHETYPE: f32 = 0.3;
 const MAX_TARGETS: u8 = 5;
 const PERCENTAGE_TARGET_NEED_TO_MEET_REQ_ON_RES: f32 = 0.5;
 const PERCENTAGE_TARGET_DOES_MORE: f32 = 0.4;
-
+const PERCENTAGE_ACTION_TRIGGERS_DIFFERENT_TIME: f32 = 0.2;
+const PERCENTAGE_ACTION_SPELL_TRIGGER_HAS_FURTHER_SPECIFICATION: f32 = 0.2;
+const MAX_CHAIN_LINK: u8 = 7;
+const PERCENTAGE_SPELL_TRIGGER_SPECIFICATION_CHAIN_LINK_HAS_OR_HIGHER: f32 = 0.5;
+const PERCENTAGE_MORE_ACTIVATION_LOCATIONS: f32 = 0.3;
+const PERCENTAGE_SPELL_TRIGGER_SPECIFICATION_ADDED_NEEDS_CARD: f32 = 0.5;
+const PERCENTAGE_PLAYER_ACTION_CONTROL_INVERTED: f32 = 0.5;
+const PERCENTAGE_COST_DISCARD_SELF: f32 = 0.3;
+const MAX_COST_SEND: u8 = 10;
+const PERCENTAGE_COST_SEND_HAS_UP_TO: f32 = 0.3;
+const PERCENTAGE_COST_SEND_INCLUDES_EXTRADECK: f32 = 0.5;
 
 const SUMMONING_TYPES: [&str; 9] = ["Normal Summon", "Ritual Summon", "Set", "Special Summon", "Fusion Summon", "Xyz Summon", "Synchro Summon", "Pendulum Summon", "Link Summon"];
+const MAIN_SUMMONING_TYPES: [&str; 5] = ["Normal Summon", "Ritual Summon", "Set", "Special Summon", "Pendulum Summon"];
 const EXTRA_SUMMONING_TYPES: [&str; 4] = ["Fusion Summon", "Synchro Summon", "Xyz Summon", "Link Summon"];
 const EXTRA_MONSTER_TYPES: [&str; 4] = ["Fusion Monster", "Synchro Monster", "Xyz Monster", "Link Monster"];
 const MAIN_MONSTER_TYPES: [&str; 2] = ["Effect Monster", "monster"];
 const MONSTER_TYPES_WITH_LEVELS: [&str; 3] = ["monster", "Fusion Monster", "Synchro Monster"];
 const SUMMONING_MATERIAL_TYPES: [&str; 4] = ["Fusion", "Synchro", "Xyz", "Link"];
-const LOCATION: [&str; 5] = ["hand", "GY", "Extra Deck", "Deck", "face-up Extra Deck"];
+const LOCATION: [&str; 8] = ["hand", "GY", "Extra Deck", "Deck", "field", "Main Monster Zone", "Extra Monster Zone", "Spell/Trap Zone"];
 const IMPERATIVE_ACTIONS: [&str; 3] = ["banishing", "destroying", "excavating"];
 const PEOPLE: [&str; 3] = ["you", "your opponent", "the controller of this card"];
 const ATTRIBUTES: [&str; 6] = ["DARK", "LIGHT", "EARTH", "WIND", "WATER", "FIRE"];
@@ -84,9 +95,11 @@ const PHASES: [&str; 7] = ["Draw Phase", "Standby Phase", "Main Phase", "Main Ph
 const DAMAGE_TYPES: [&str; 3] = ["battle damage", "effect damage", "damage"];
 const ADD_LOCATIONS: [&str; 2] = ["Deck", "GY"];
 const SEND_LOCATIONS: [&str; 3] = ["Deck", "hand", "field"];
+const SEND_LOCATIONS_EXTRA: [&str; 4] = ["Deck", "hand", "field", "Extra Deck"];
 const SPELL_TYPES: [&str; 6] = ["Field Spell", "Continuous Spell", "Quick-Play Spell", "Equip Spell", "Normal Spell", "Spell Card"];
 const TRAP_TYPES: [&str; 4] = ["Continuous Trap", "Counter Trap", "Normal Trap", "Trap Card"];
 const CONJUNCTIONS: [&str; 5] = ["and", ", and if you do,", ", also", ", then", ", also, after that, "];
+const ACTIVATION_LOCATIONS: [&str; 3] = ["hand", "Deck", "GY"];
 
 #[derive(Debug)]
 struct Card<'a>
@@ -226,6 +239,11 @@ impl Card<'_>
 		return format!("\"{}\"", "Card Name");
 	}
 
+	pub fn generate_card_type(text: &mut String)
+	{
+		text.push_str(Self::get_card_type());
+	}
+
 	pub fn generate_monster_attributes(text: &mut String, level_restriction: Option<u8>, needs_level: bool)
 	{
 		text.push(' ');
@@ -328,9 +346,26 @@ impl Card<'_>
 		text.push_str(Self::get_monster_type(summoning_restriction, is_getting_summoned, include_extradeck));
 	}
 
-	pub fn generate_summoning_type(text: &mut String)
+	pub fn generate_summoning_type(text: &mut String, maybe_card_type: Option<&str>)
 	{
-		text.push_str(Self::get_summoning_type());
+		match maybe_card_type
+		{
+			Some(card_type) =>
+			{
+				if EXTRA_MONSTER_TYPES.contains(&card_type)
+				{
+					text.push_str(Self::get_extra_summoning_type());
+				}
+				else
+				{
+					text.push_str(Self::get_main_summoning_type());
+				}
+			}
+			None =>
+			{
+				text.push_str(Self::get_summoning_type());
+			}
+		}
 	}
 
 	pub fn get_location() -> &'static str
@@ -389,6 +424,11 @@ impl Card<'_>
 	pub fn get_extra_summoning_type() -> &'static str
 	{
 		return EXTRA_SUMMONING_TYPES.choose(&mut rand::thread_rng()).unwrap();
+	}
+
+	pub fn get_main_summoning_type() -> &'static str
+	{
+		return MAIN_SUMMONING_TYPES.choose(&mut rand::thread_rng()).unwrap();
 	}
 
 	pub fn get_summoning_material_type() -> &'static str
@@ -542,6 +582,40 @@ impl Card<'_>
 		}
 	}
 
+	pub fn generate_spell_trigger_specification(text: &mut String)
+	{
+		let mut rng = rand::thread_rng();
+		match rng.gen_range(0..5)
+		{
+			1 =>
+			{
+				text.push_str("as Chain Link ");
+				text.push_str(&(rng.gen_range(2..=MAX_CHAIN_LINK).to_string()));
+				if rng.gen::<f32>() < PERCENTAGE_SPELL_TRIGGER_SPECIFICATION_CHAIN_LINK_HAS_OR_HIGHER
+				{
+					text.push_str(" or higher");
+				}
+			}
+			2 =>
+			{
+				text.push_str("from your ");
+				Self::generate_activation_locations(text);
+			}
+			3 =>
+			{
+				text.push_str("added from your ");
+				Self::generate_add_location(text);
+				text.push_str(" to your hand");
+				if rng.gen::<f32>() < PERCENTAGE_SPELL_TRIGGER_SPECIFICATION_ADDED_NEEDS_CARD
+				{
+					text.push_str(" by a ");
+					Self::generate_card_anywhere(text, false);
+				}
+			}
+			_ => todo!("generate_spell_trigger_specification not fully implemented")
+		}
+	}
+
 	pub fn generate_materials(&mut self)
 	{
 		let mut rng = rand::thread_rng();
@@ -640,7 +714,7 @@ impl Card<'_>
 		}
 	}
 
-	pub fn generate_card_action(text: &mut String)
+	pub fn generate_card_action(text: &mut String, card_type: &str)
 	{
 		let mut rng = rand::thread_rng();
 		let case = rng.gen_range(0..5);
@@ -670,14 +744,56 @@ impl Card<'_>
 			1 =>
 			{
 				text.push_str("is sent from your ");
-				Self::generate_location(text);
+				if EXTRA_MONSTER_TYPES.contains(&card_type)
+				{
+					Self::generate_send_location_extra(text);
+				}
+				else
+				{
+					Self::generate_send_location(text);
+				}
 				text.push_str(" to the GY");
+			}
+			2 =>
+			{
+				let different_time = rng.gen::<f32>() < PERCENTAGE_ACTION_TRIGGERS_DIFFERENT_TIME;
+				if different_time
+				{
+					text.push_str("was ");
+				}
+				else
+				{
+					text.push_str("is ");
+				}
+				if MONSTER_TYPES.contains(&card_type)
+				{
+					Self::generate_summoning_type(text, Some(card_type));
+					text.push_str("ed");
+					todo!("Monster specifications");
+				}
+				else
+				{
+					text.push_str("activated");
+					if rng.gen::<f32>() < PERCENTAGE_ACTION_SPELL_TRIGGER_HAS_FURTHER_SPECIFICATION
+					{
+						text.push(' ');
+						Self::generate_spell_trigger_specification(text);
+					}
+				}
+				if different_time
+				{
+					text.push_str(" this turn");
+				}
+			}
+			3 =>
+			{
+				text.push_str("is face-up on the field");
 			}
 			_ => todo!("text so far: {}", text)
 		}
 	}
 
-	pub fn generate_activation_condition_main(text: &mut String, phase: Option<&str>)
+	pub fn generate_activation_condition_main(text: &mut String, card_type: &str, phase: Option<&str>)
 	{
 		let mut rng = rand::thread_rng();		
 		if rng.gen::<f32>() < PERCENTAGE_ACTIVATION_CONDITION_PLAYER
@@ -704,7 +820,7 @@ impl Card<'_>
 				text.push_str("a ");
 				Self::generate_card_anywhere(text, true);
 			}
-			Self::generate_card_action(text);
+			Self::generate_card_action(text, card_type);
 			todo!("text so far: {}", text);
 		}
 	}
@@ -742,7 +858,37 @@ impl Card<'_>
 					text.push('s');
 				}
 				text.push(' ');
+				if rng.gen::<f32>() < PERCENTAGE_PLAYER_ACTION_CONTROL_INVERTED
+				{
+					text.push_str("no ");
+				}
 				Self::generate_card_anywhere(text, true);
+			}
+			2 =>
+			{
+				if is_opponent
+				{
+					text.push_str("has");
+				}
+				else
+				{
+					text.push_str("have");
+				}
+				if rng.gen::<f32>() < PERCENTAGE_PLAYER_ACTION_CONTROL_INVERTED
+				{
+					text.push_str(" no ");
+				}
+				Self::generate_card_type(text);
+				let loc = Self::get_location();
+				if loc == "field"
+				{
+					text.push_str(" on your ");
+				}
+				else
+				{
+					text.push_str(" in your ");
+				}
+				text.push_str(loc);
 			}
 			_ => todo!("text so far: {}", text)
 		}
@@ -769,6 +915,16 @@ impl Card<'_>
 		todo!("text so far: {}", text);
 	}
 
+	pub fn generate_activation_location(text: &mut String)
+	{
+		text.push_str(Self::get_activation_location());
+	}
+
+	pub fn get_activation_location() -> &'static str
+	{
+		return ACTIVATION_LOCATIONS.choose(&mut rand::thread_rng()).unwrap();
+	}
+
 	pub fn generate_add_location(text: &mut String)
 	{
 		text.push_str(ADD_LOCATIONS.choose(&mut rand::thread_rng()).unwrap());
@@ -779,9 +935,19 @@ impl Card<'_>
 		return SEND_LOCATIONS.choose(&mut rand::thread_rng()).unwrap();
 	}
 
+	pub fn get_send_location_extra() -> &'static str
+	{
+		return SEND_LOCATIONS_EXTRA.choose(&mut rand::thread_rng()).unwrap();
+	}
+
 	pub fn generate_send_location(text: &mut String)
 	{
 		text.push_str(Self::get_send_location());
+	}
+
+	pub fn generate_send_location_extra(text: &mut String)
+	{
+		text.push_str(Self::get_send_location_extra());
 	}
 
 	pub fn generate_send_locations(text: &mut String)
@@ -807,6 +973,28 @@ impl Card<'_>
 		text.push_str(locations.last().unwrap());
 	}
 
+	pub fn generate_activation_locations(text: &mut String)
+	{
+		let mut locations: Vec<&str> = Vec::new();
+		locations.push(Self::get_activation_location());
+		let mut rng = rand::thread_rng();
+		while locations.len() < ACTIVATION_LOCATIONS.len() && rng.gen::<f32>() < PERCENTAGE_MORE_ACTIVATION_LOCATIONS
+		{
+			locations.push(Self::get_activation_location());
+		}
+		locations.sort();
+		locations.dedup();
+		for i in 0..locations.len() - 1
+		{
+			text.push_str(", ");
+			text.push_str(locations[i]);
+		}
+		if locations.len() > 1
+		{
+			text.push_str(" and/or ");
+		}
+		text.push_str(locations.last().unwrap());
+	}
 
 	pub fn generate_activation_condition(text: &mut String, card_type: &str) -> bool
 	{
@@ -889,11 +1077,11 @@ impl Card<'_>
 					}
 				}
 			}
-			Self::generate_activation_condition_main(text, activation_phase);
+			Self::generate_activation_condition_main(text, card_type, activation_phase);
 			if rng.gen::<f32>() < PERCENTAGE_ACTIVATION_WHILE
 			{
 				text.push_str(", while ");
-				Self::generate_activation_condition_main(text, activation_phase);
+				Self::generate_activation_condition_main(text, card_type, activation_phase);
 			}
 		}
 		if card_type.contains("Monster") && rng.gen::<f32>() < PERCENTAGE_IS_QUICK
@@ -926,16 +1114,51 @@ impl Card<'_>
 			1 =>
 			{
 				text.push_str("Discard ");
-				if rng.gen::<f32>() < PERCENTAGE_COST_DISCARD_ENTIRE
+				if rng.gen::<f32>() < PERCENTAGE_COST_DISCARD_SELF
 				{
-					text.push_str("your entire hand");
+					text.push_str("this card");
 				}
 				else
 				{
-					let amount = rng.gen_range(1..MAX_COST_DISCARD);
-					text.push_str(&amount.to_string());
-					Self::generate_hand_card(text);
+					if rng.gen::<f32>() < PERCENTAGE_COST_DISCARD_ENTIRE
+					{
+						text.push_str("your entire hand");
+					}
+					else
+					{
+						let amount = rng.gen_range(1..=MAX_COST_DISCARD);
+						text.push_str(&amount.to_string());
+						Self::generate_hand_card(text);
+					}
 				}
+				return None;
+			}
+			2 =>
+			{
+				text.push_str("Send ");
+				let amount = rng.gen_range(1..=MAX_COST_SEND);
+				if amount > 1 && rng.gen::<f32>() < PERCENTAGE_COST_SEND_HAS_UP_TO
+				{
+					text.push_str("up to ");
+				}
+				text.push_str(&amount.to_string());
+				text.push(' ');
+				let include_extradeck = rng.gen::<f32>() < PERCENTAGE_COST_SEND_INCLUDES_EXTRADECK;
+				Self::generate_card_anywhere(text, include_extradeck);
+				if amount > 1
+				{
+					text.push_str("s ");
+				}
+				text.push_str("from your ");
+				if include_extradeck
+				{
+					Self::generate_send_location_extra(text);
+				}
+				else
+				{
+					Self::generate_send_locations(text);
+				}
+				text.push_str(" to the GY");
 				return None;
 			}
 			_ => todo!("text so far: {}", text)
@@ -1200,18 +1423,18 @@ impl Card<'_>
 				}
 				3 =>
 				{
-					Self::generate_activation_condition_main(&mut self.text, None);
+					Self::generate_activation_condition_main(&mut self.text, self.card_type, None);
 					self.text.push_str(", you win the Duel");
 					// Match winner cards are useless so they are excluded.
 				}
 				4 =>
 				{
-					self.text.push_str(&format!("(This card's name is always treated as {}.)", Self::get_card_name()));
+					self.text.push_str(&format!("(This card's name is always treated as {}.)\n", Self::get_card_name()));
 					return true;
 				}
 				5 =>
 				{
-					self.text.push_str(&format!("(This card is always treated as an {} card.)", Self::get_archetype()));
+					self.text.push_str(&format!("(This card is always treated as an {} card.)\n", Self::get_archetype()));
 					return true;
 				}
 				6 =>

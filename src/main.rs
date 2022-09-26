@@ -1540,6 +1540,7 @@ impl Card<'_>
 						self.text.push_str(summoning_type);
 						self.text.push_str("ed by ");
 						Self::generate_imperative_action(&mut self.text);
+						self.text.push(' ');
 						Self::generate_target(&mut self.text);
 					}
 				}

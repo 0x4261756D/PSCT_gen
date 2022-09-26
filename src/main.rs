@@ -86,6 +86,7 @@ const PERCENTAGE_COST_BANISH_IS_TOP_OF_DECK: f32 = 0.5;
 const PERCENTAGE_ACTION_DESTROYED_DIFFERENT_TIME: f32 = 0.3;
 const PERCENTAGE_ACTION_DESTROYED_HAS_FURTHER_SPECIFICATION: f32 = 0.3;
 const PERCENTAGE_ACTION_DESTROYED_SPECIFICATION_NEEDS_TO_HIT_GY: f32 = 0.5;
+const PERCENTAGE_RES_NEGATE_NEGATES_ACTIVATION: f32 = 0.3;
 
 const SUMMONING_TYPES: [&str; 9] = ["Normal Summon", "Ritual Summon", "Set", "Special Summon", "Fusion Summon", "Xyz Summon", "Synchro Summon", "Pendulum Summon", "Link Summon"];
 const MAIN_SUMMONING_TYPES: [&str; 5] = ["Normal Summon", "Ritual Summon", "Set", "Special Summon", "Pendulum Summon"];
@@ -715,6 +716,7 @@ impl Card<'_>
 		Self::generate_monster_attributes(text, None, true);
 		let typ = Self::get_monster_type(None, false, include_extradeck);
 		text.push_str(typ);
+		text.push_str(" that ");
 		Self::generate_card_action(text, typ);
 	}
 
@@ -737,6 +739,7 @@ impl Card<'_>
 				}
 				let typ = Self::get_spell_type();
 				text.push_str(typ);
+				text.push_str(" that ");
 				Self::generate_card_action(text, typ);
 			}
 			2 =>
@@ -748,6 +751,7 @@ impl Card<'_>
 				}
 				let typ = Self::get_trap_type();
 				text.push_str(typ);
+				text.push_str(" that ");
 				Self::generate_card_action(text, typ);
 			}
 			_ => panic!("We shouldn't be here")
@@ -792,7 +796,7 @@ impl Card<'_>
 			}
 			_ =>
 			{
-				todo!("generate_destroyed_specification")
+				todo!("generate_destroyed_specification {}", text)
 			}
 		}
 		if rng.gen::<f32>() < PERCENTAGE_ACTION_DESTROYED_SPECIFICATION_NEEDS_TO_HIT_GY
@@ -905,7 +909,6 @@ impl Card<'_>
 	pub fn generate_activation_condition_main(text: &mut String, card_type: &str, phase: Option<&str>)
 	{
 		let mut rng = rand::thread_rng();
-		let mut typ = card_type;
 		if rng.gen::<f32>() < PERCENTAGE_ACTIVATION_CONDITION_PLAYER
 		{
 			if rng.gen::<f32>() < PERCENTAGE_ACTIVATION_CONDITION_PLAYER_OPPONENT
@@ -931,7 +934,7 @@ impl Card<'_>
 				Self::generate_card_anywhere(text, true);
 				text.push(' ');
 			}
-			// todo!("text so far: {}", text);
+			Self::generate_card_action(text, card_type);
 		}
 	}
 
@@ -1394,19 +1397,27 @@ impl Card<'_>
 			{
 				if start_of_sentence
 				{
-					text.push_str("Negate the ");
+					text.push_str("Negate ");
 				}
 				else
 				{
-					text.push_str("negate the ");
+					text.push_str("negate ");
 				}
-				if referrer.is_some()
+				if rng.gen::<f32>() < PERCENTAGE_RES_NEGATE_NEGATES_ACTIVATION
 				{
-					text.push_str(&referrer.as_ref().unwrap());
+					text.push_str("the activation ");
 				}
 				else
 				{
-					todo!("text so far: {}", text);
+					if referrer.is_some()
+					{
+						text.push_str(&referrer.as_ref().unwrap());
+						text.push_str("'s effects");
+					}
+					else
+					{
+						todo!("text so far: {}", text);
+					}
 				}
 			}
 			1 =>
